@@ -14,7 +14,7 @@ const handledWindowTypes = [
   Meta.WindowType.MODAL_DIALOG,
   // Meta.WindowType.TOOLBAR,
   // Meta.WindowType.MENU,
-  Meta.WindowType.UTILITY
+  Meta.WindowType.UTILITY,
   // Meta.WindowType.SPLASHSCREEN
 ];
 
@@ -28,33 +28,38 @@ class WindowTracker {
   track_windows() {
     let tracked = [];
     let actors = global.get_window_actors();
-    let windows = actors.map(a => a.get_meta_window());
-    windows = windows.filter(w => w.can_close());
-    windows = windows.filter(w => w.get_window_type() in handledWindowTypes);
-    windows.forEach(w => {
+    let windows = actors.map((a) => a.get_meta_window());
+    windows = windows.filter((w) => w.can_close());
+    windows = windows.filter((w) => w.get_window_type() in handledWindowTypes);
+    windows.forEach((w) => {
       if (!w._tracked) {
         this.track(w);
       }
       tracked.push(w);
     });
-
-    let workspace = global.workspace_manager.get_active_workspace_index();
-    tracked = windows.filter(
-      w =>
-        workspace == w.get_workspace().index() && w.showing_on_its_workspace()
-    );
-
     this.services.emit('window-geometry-changed', tracked);
   }
 
   untrack_windows() {
     let actors = global.get_window_actors();
-    let windows = actors.map(a => a.get_meta_window());
-    windows.forEach(w => {
+    let windows = actors.map((a) => a.get_meta_window());
+    windows.forEach((w) => {
       if (w._tracked) {
         this.untrack(w);
       }
     });
+  }
+
+  get_tracked_windows() {
+    let actors = global.get_window_actors();
+    let windows = actors.map((a) => a.get_meta_window());
+    windows = windows.filter((w) => w._tracked);
+    let workspace = global.workspace_manager.get_active_workspace_index();
+    windows = windows.filter(
+      (w) =>
+        workspace == w.get_workspace().index() && w.showing_on_its_workspace()
+    );
+    return windows;
   }
 
   track(window) {
@@ -62,12 +67,12 @@ class WindowTracker {
       window.connectObject(
         'position-changed',
         () => {
-          console.log(`position changed: ${window.title}`);
+          // console.log(`position changed: ${window.title}`);
           this.services.emit('window-geometry-changed', [window]);
         },
         'size-changed',
         () => {
-          console.log(`size changed: ${window.title}`);
+          // console.log(`size changed: ${window.title}`);
           this.services.emit('window-geometry-changed', [window]);
         },
         this
@@ -94,9 +99,10 @@ export class Services extends Signals.EventEmitter {
   }
 
   enable() {
+    serviceInstance = this;
+
     this.window_tracker = new WindowTracker(this);
     this.window_tracker.track_windows();
-    serviceInstance = this;
 
     global.display.connectObject(
       'notify::focus-window',
@@ -128,13 +134,14 @@ export class Services extends Signals.EventEmitter {
 
     this.window_tracker.untrack_windows();
     this.window_tracker = null;
-    serviceInstance = null;
 
     global.display.disconnectObject(this);
 
     this._timer = null;
     this._hiTimer = null;
     this._loTimer = null;
+
+    serviceInstance = null;
   }
 
   update() {

@@ -1,5 +1,7 @@
 'use strict';
 
+import * as Main from 'resource:///org/gnome/shell/ui/main.js';
+
 import GObject from 'gi://GObject';
 import Clutter from 'gi://Clutter';
 import St from 'gi://St';
@@ -22,7 +24,7 @@ export let GDockIconItem = GObject.registerClass(
         clip_to_allocation: true,
         x_align: Clutter.ActorAlign.CENTER,
         y_align: Clutter.ActorAlign.CENTER,
-        offscreen_redirect: Clutter.OffscreenRedirect.ALWAYS
+        offscreen_redirect: Clutter.OffscreenRedirect.ALWAYS,
         // style_class: 'dock-box'
       });
 
@@ -48,7 +50,7 @@ export let GDockDashItem = GObject.registerClass(
         clip_to_allocation: true,
         x_align: Clutter.ActorAlign.CENTER,
         y_align: Clutter.ActorAlign.CENTER,
-        offscreen_redirect: Clutter.OffscreenRedirect.ALWAYS
+        offscreen_redirect: Clutter.OffscreenRedirect.ALWAYS,
         // style_class: 'dock-box'
       });
 
@@ -68,7 +70,54 @@ export let GDockDashItem = GObject.registerClass(
 
       return {
         dock_width: this.width + pad_width,
-        dock_height: this.height + pad_height
+        dock_height: this.height + pad_height,
+      };
+    }
+  }
+);
+
+export let GDockPanelItem = GObject.registerClass(
+  {},
+  class GDockPanelItem extends GDockItem {
+    _init(params) {
+      super._init({
+        name: 'GDockItem',
+        reactive: false,
+        track_hover: false,
+        width: 64,
+        height: 64,
+        clip_to_allocation: true,
+        x_align: Clutter.ActorAlign.CENTER,
+        y_align: Clutter.ActorAlign.CENTER,
+        offscreen_redirect: Clutter.OffscreenRedirect.ALWAYS,
+        style_class: 'dock-box',
+      });
+
+      // this._box = new St.BoxLayout({});
+      // let panel = Main.panel;
+      // let boxes = [panel._leftBox, panel._centerBox, panel._righBox];
+      // boxes.forEach((b) => {
+      //   panel.remove_child(b);
+      //   this._box.add_child(b);
+      // });
+
+      Main.layoutManager.panelBox.remove_child(Main.panel);
+      this.panel = Main.panel;
+      this.add_child(this.panel);
+    }
+
+    layout(dock) {
+      this.panel.width = dock._monitor.width * 0.8;
+      this.panel.height = 80;
+
+      let pad_width = 60;
+      let pad_height = 60;
+      this.width = this.panel.width;
+      this.height = this.panel.height;
+
+      return {
+        dock_width: this.width + pad_width,
+        dock_height: this.height + pad_height,
       };
     }
   }

@@ -5,7 +5,7 @@ import { Extension } from 'resource:///org/gnome/shell/extensions/extension.js';
 
 import { Services } from './services.js';
 import { GDock } from './dock.js';
-import { GDockIconItem, GDockDashItem } from './dockItems.js';
+import { GDockIconItem, GDockDashItem, GDockPanelItem } from './dockItems.js';
 
 export default class GDockExtension extends Extension {
   enable() {
@@ -15,7 +15,8 @@ export default class GDockExtension extends Extension {
     console.log('The Gnome Dock - enabled');
     this._gdock = new GDock();
     // this._gdock.set_child(new GDockIconItem());
-    this._gdock.set_child(new GDockDashItem());
+    // this._gdock.set_child(new GDockDashItem());
+    this._gdock.set_child(new GDockPanelItem());
     this._gdock.dock();
 
     Main.overview.gdock = this;
