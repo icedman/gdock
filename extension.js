@@ -13,6 +13,7 @@ export default class GDockExtension extends Extension {
     let item = new GDockItem();
     this._gdock.add_child(item);
     this._gdock.slide_out();
+    this._gdock.layout();
 
     Main.overview.gdock = this;
   }
