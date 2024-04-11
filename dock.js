@@ -5,7 +5,8 @@ import GObject from 'gi://GObject';
 import Clutter from 'gi://Clutter';
 import St from 'gi://St';
 
-import { setTimeout } from './utils.js';
+import { setTimeout, isOverlapRect } from './utils.js';
+import { Services } from './services.js';
 
 export const DockPosition = {
   TOP: 'top',
@@ -75,6 +76,10 @@ export let GDock = GObject.registerClass(
         track_hover: false
         // style_class: 'dock-box'
       });
+
+      this._settings = {
+        dodge: true
+      };
     }
 
     set_child(child) {
@@ -107,14 +112,22 @@ export let GDock = GObject.registerClass(
       });
 
       Main.layoutManager.addChrome(this._struts, {
-        affectsStruts: true,
+        affectsStruts: !this._settings.dodge,
         affectsInputRegion: false,
         trackFullscreen: false
       });
 
       this._added_to_chrome = true;
 
-      this.layout();
+      Services.instance().connectObject(
+        'window-geometry-changed',
+        (service, windows) => {
+          this.autohide_dodge_windows(windows);
+        },
+        this
+      );
+
+      this._layout();
     }
 
     undock() {
@@ -126,6 +139,8 @@ export let GDock = GObject.registerClass(
       Main.layoutManager.removeChrome(this._struts);
 
       this._added_to_chrome = false;
+
+      Services.instance().disconnectObject(this);
     }
 
     slide_in() {
@@ -135,13 +150,11 @@ export let GDock = GObject.registerClass(
       child.ease({
         translationX: 0,
         translationY: 0,
-        duration: 1500,
+        duration: 750,
         mode: Clutter.AnimationMode.EASE_OUT_QUAD,
         onComplete: () => {
           console.log('slide in!');
-          setTimeout(() => {
-            this.layout();
-          }, 1050);
+          this._layout();
         }
       });
     }
@@ -169,14 +182,12 @@ export let GDock = GObject.registerClass(
       child.ease({
         translationX: targetX,
         translationY: targetY,
-        duration: 1500,
+        duration: 750,
         mode: Clutter.AnimationMode.EASE_OUT_QUAD,
         onComplete: () => {
           console.log('slide out!');
           child._hidden = true;
-          setTimeout(() => {
-            this.layout();
-          }, 1050);
+          this._layout();
         }
       });
     }
@@ -188,7 +199,11 @@ export let GDock = GObject.registerClass(
       );
     }
 
-    _center_to_container(container, child) {
+    is_child_hidden() {
+      return this.child.translationX + this.child.translationY != 0;
+    }
+
+    _snap_to_container_edge(container, child) {
       child.x = container.width / 2 - child.width / 2;
       child.y = container.height / 2 - child.height / 2;
       if (this.is_vertical()) {
@@ -214,19 +229,58 @@ export let GDock = GObject.registerClass(
         this.height = constraints.dock_height;
       }
 
-      this._center_to_container(this._monitor, this);
+      this._snap_to_container_edge(this._monitor, this);
       this.x += this._monitor.x;
       this.y += this._monitor.y;
 
-      this._center_to_container(this, child);
+      this._snap_to_container_edge(this, child);
 
       let [cx, cy] = child.get_transformed_position();
-      this._struts.x = cx;
-      this._struts.y = cy;
-      this._struts.width = child.width;
-      this._struts.height = child.height;
-      this._struts.affectsInputRegion =
-        child.translationX + child.translationY == 0;
+      if (!isNaN(cx) && !isNaN(cy)) {
+        this._struts.x = cx;
+        this._struts.y = cy;
+        this._struts.width = child.width;
+        this._struts.height = child.height;
+        this._struts.affectsStruts = this.is_child_hidden();
+      }
+    }
+
+    _layout() {
+      setTimeout(() => {
+        this.layout();
+      }, 0);
+    }
+
+    autohide_dodge_windows(windows) {
+      // todo make this a debounced call
+      this._layout();
+
+      if (!this._settings.dodge) {
+        return;
+      }
+
+      let strutsRect = [
+        this._struts.x,
+        this._struts.y,
+        this._struts.width,
+        this._struts.height
+      ];
+
+      let should_hide = false;
+      windows.forEach(w => {
+        let frame = w.get_frame_rect();
+        let winRect = [frame.x, frame.y, frame.width, frame.height];
+        console.log(`${strutsRect} - ${winRect}`);
+        if (isOverlapRect(strutsRect, winRect)) {
+          should_hide = true;
+        }
+      });
+
+      if (should_hide) {
+        this.slide_out();
+      } else {
+        this.slide_in();
+      }
     }
   }
 );
