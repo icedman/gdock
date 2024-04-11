@@ -18,5 +18,5 @@ test-shell: install
 clean:
 	rm -rf ./build
 	
-pretty: xml-lint
+pretty:
 	prettier --single-quote --write "**/*.js"

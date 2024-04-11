@@ -2,13 +2,16 @@
 
 import * as Main from 'resource:///org/gnome/shell/ui/main.js';
 import { Extension } from 'resource:///org/gnome/shell/extensions/extension.js';
-import { GDock } from './dock.js';
+import { GDock, GDockItem } from './dock.js';
 
 export default class GDockExtension extends Extension {
   enable() {
     console.log('The Gnome Dock - enabled');
     this._gdock = new GDock();
     Main.uiGroup.add_child(this._gdock);
+
+    let item = new GDockItem();
+    this._gdock.add_child(item);
   }
 
   disable() {
