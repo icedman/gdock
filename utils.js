@@ -1,3 +1,5 @@
+'use strict';
+
 import GLib from 'gi://GLib';
 
 export const setTimeout = (func, delay, ...args) => {
