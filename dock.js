@@ -29,6 +29,20 @@ export let GDockItem = GObject.registerClass(
         style_class: 'dock-item-box'
       });
     }
+
+    preferred_constraints(dock) {
+      let pad_width = 60;
+      let pad_height = 60;
+      if (dock.is_vertical()) {
+        pad_width += 20;
+      } else {
+        pad_height += 20;
+      }
+      return {
+        dock_width: this.width + pad_width,
+        dock_height: this.height + pad_height
+      };
+    }
   }
 );
 
@@ -50,8 +64,17 @@ export let GDock = GObject.registerClass(
       });
 
       this._hidden = false;
-      this._position = DockPosition.BOTTOM;
+      this._position = DockPosition.LEFT;
       this._monitor = Main.layoutManager.primaryMonitor;
+    }
+
+    set_child(child) {
+      if (this.child) {
+        this.remove_child(this.child);
+      }
+      this.add_child(child);
+      this.child = child;
+      return child;
     }
 
     slide_in() {
@@ -126,11 +149,18 @@ export let GDock = GObject.registerClass(
     }
 
     layout() {
+      let child = this.first_child;
+      let constraints = child.preferred_constraints(this);
+      if (constraints) {
+        this.width = constraints.dock_width;
+        this.height = constraints.dock_height;
+      }
+
       this._center_to_container(this._monitor, this);
       this.x += this._monitor.x;
       this.y += this._monitor.y;
 
-      this._center_to_container(this, this.first_child);
+      this._center_to_container(this, child);
     }
   }
 );
