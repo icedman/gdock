@@ -31,17 +31,19 @@ class WindowTracker {
     let windows = actors.map(a => a.get_meta_window());
     windows = windows.filter(w => w.can_close());
     windows = windows.filter(w => w.get_window_type() in handledWindowTypes);
-    let workspace = global.workspace_manager.get_active_workspace_index();
-    windows = windows.filter(
-      w =>
-        workspace == w.get_workspace().index() && w.showing_on_its_workspace()
-    );
     windows.forEach(w => {
       if (!w._tracked) {
         this.track(w);
       }
       tracked.push(w);
     });
+
+    let workspace = global.workspace_manager.get_active_workspace_index();
+    tracked = windows.filter(
+      w =>
+        workspace == w.get_workspace().index() && w.showing_on_its_workspace()
+    );
+
     this.services.emit('window-geometry-changed', tracked);
   }
 
@@ -60,10 +62,12 @@ class WindowTracker {
       window.connectObject(
         'position-changed',
         () => {
+          console.log(`position changed: ${window.title}`);
           this.services.emit('window-geometry-changed', [window]);
         },
         'size-changed',
         () => {
+          console.log(`size changed: ${window.title}`);
           this.services.emit('window-geometry-changed', [window]);
         },
         this

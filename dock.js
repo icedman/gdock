@@ -267,6 +267,8 @@ export let GDock = GObject.registerClass(
         return;
       }
 
+      console.log(windows.length);
+
       let strutsRect = [
         this._struts.x,
         this._struts.y,
@@ -278,7 +280,7 @@ export let GDock = GObject.registerClass(
       windows.forEach(w => {
         let frame = w.get_frame_rect();
         let winRect = [frame.x, frame.y, frame.width, frame.height];
-        console.log(`${strutsRect} - ${winRect}`);
+        console.log(`${w.title} ${winRect}`);
         if (isOverlapRect(strutsRect, winRect)) {
           should_hide = true;
         }
