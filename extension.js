@@ -3,7 +3,6 @@
 import * as Main from 'resource:///org/gnome/shell/ui/main.js';
 import { Extension } from 'resource:///org/gnome/shell/extensions/extension.js';
 
-import { setTimeout } from './utils.js';
 import { Services } from './services.js';
 import { GDock } from './dock.js';
 import { GDockIconItem, GDockDashItem } from './dockItems.js';
@@ -17,7 +16,6 @@ export default class GDockExtension extends Extension {
     this._gdock = new GDock();
     // this._gdock.set_child(new GDockIconItem());
     this._gdock.set_child(new GDockDashItem());
-
     this._gdock.dock();
 
     Main.overview.gdock = this;

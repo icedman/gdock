@@ -5,7 +5,7 @@ import GObject from 'gi://GObject';
 import Clutter from 'gi://Clutter';
 import St from 'gi://St';
 
-import { setTimeout, isOverlapRect } from './utils.js';
+import { isOverlapRect } from './utils.js';
 import { Services } from './services.js';
 
 export const DockPosition = {
@@ -122,12 +122,12 @@ export let GDock = GObject.registerClass(
       Services.instance().connectObject(
         'window-geometry-changed',
         (service, windows) => {
-          this.autohide_dodge_windows(windows);
+          this.debounced_autohide_dodge_windows(windows);
         },
         this
       );
 
-      this._layout();
+      this.debounced_layout();
     }
 
     undock() {
@@ -154,7 +154,7 @@ export let GDock = GObject.registerClass(
         mode: Clutter.AnimationMode.EASE_OUT_QUAD,
         onComplete: () => {
           console.log('slide in!');
-          this._layout();
+          this.debounced_layout();
         }
       });
     }
@@ -187,7 +187,7 @@ export let GDock = GObject.registerClass(
         onComplete: () => {
           console.log('slide out!');
           child._hidden = true;
-          this._layout();
+          this.debounced_layout();
         }
       });
     }
@@ -245,15 +245,23 @@ export let GDock = GObject.registerClass(
       }
     }
 
-    _layout() {
-      setTimeout(() => {
-        this.layout();
-      }, 0);
+    debounced_layout() {
+      if (!this._debounce_layout_seq) {
+        this._debounce_layout_seq = Services.instance().loTimer.runDebounced(
+          () => {
+            this.layout();
+          },
+          500,
+          'debounced_layout'
+        );
+      } else {
+        Services.instance().loTimer.runDebounced(this._debounce_layout_seq);
+      }
     }
 
     autohide_dodge_windows(windows) {
       // todo make this a debounced call
-      this._layout();
+      this.debounced_layout();
 
       if (!this._settings.dodge) {
         return;
@@ -280,6 +288,22 @@ export let GDock = GObject.registerClass(
         this.slide_out();
       } else {
         this.slide_in();
+      }
+    }
+
+    debounced_autohide_dodge_windows(windows) {
+      if (!this._debounce_autohide_dodge_seq) {
+        this._debounce_autohide_dodge_seq = Services.instance().loTimer.runDebounced(
+          () => {
+            this.autohide_dodge_windows(windows);
+          },
+          500,
+          'debounced_autohide_dodge_windows'
+        );
+      } else {
+        Services.instance().loTimer.runDebounced(
+          this._debounce_autohide_dodge_seq
+        );
       }
     }
   }

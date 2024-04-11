@@ -2,8 +2,9 @@
 
 import Meta from 'gi://Meta';
 import GObject from 'gi://GObject';
-
 import * as Signals from 'resource:///org/gnome/shell/misc/signals.js';
+
+import { Timer } from './timer.js';
 
 // some codes lifted from dash-to-dock intellihide
 const handledWindowTypes = [
@@ -30,6 +31,11 @@ class WindowTracker {
     let windows = actors.map(a => a.get_meta_window());
     windows = windows.filter(w => w.can_close());
     windows = windows.filter(w => w.get_window_type() in handledWindowTypes);
+    let workspace = global.workspace_manager.get_active_workspace_index();
+    windows = windows.filter(
+      w =>
+        workspace == w.get_workspace().index() && w.showing_on_its_workspace()
+    );
     windows.forEach(w => {
       if (!w._tracked) {
         this.track(w);
@@ -95,14 +101,36 @@ export class Services extends Signals.EventEmitter {
       this.update.bind(this),
       this
     );
+
+    // three available timers
+    // for persistent runs
+    this.timer = new Timer('loop timer');
+    this.timer.initialize(3500);
+
+    // for animation runs
+    // resolution (15) will be modified by animation-fps
+    this.hiTimer = new Timer('hi-res timer');
+    this.hiTimer.initialize(15);
+
+    // for deferred or debounced runs
+    this.loTimer = new Timer('lo-res timer');
+    this.loTimer.initialize(750);
   }
 
   disable() {
+    this._timer?.shutdown();
+    this._hiTimer?.shutdown();
+    this._loTimer?.shutdown();
+
     this.window_tracker.untrack_windows();
     this.window_tracker = null;
     serviceInstance = null;
 
     global.display.disconnectObject(this);
+
+    this._timer = null;
+    this._hiTimer = null;
+    this._loTimer = null;
   }
 
   update() {
