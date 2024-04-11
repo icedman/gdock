@@ -1,0 +1,19 @@
+{
+    "description": "The Gnome Dock",
+    "name": "Gnome Dock",
+    "original-authors": [
+      "icedman"
+    ],
+    "shell-version": [
+      "45", "46"
+    ],
+    "url": "https://github.com/icedman/gdock",
+    "uuid": "gdock@icedman.github.com",
+    "schema-id": "org.gnome.shell.extensions.gdock",
+    "gettext-domain": "gdock",
+    "donations": {
+      "buymeacoffee": "icedman"
+    },
+    "version": 100
+  }
+  
