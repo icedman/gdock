@@ -39,5 +39,34 @@ export let GDock = GObject.registerClass(
         offscreen_redirect: Clutter.OffscreenRedirect.ALWAYS,
         style_class: 'dock-box'
       });
+
+      this._hidden = false;
+    }
+
+    slide_in() {
+        let child = this.first_child;
+        child.ease({
+            translationX: 0,
+            duration: 1500,
+            mode: Clutter.AnimationMode.EASE_OUT_QUAD,
+            onComplete: () => {
+                console.log('slide in!');
+                child._hidden = false;
+            },
+        });
+    }
+
+    slide_out() {
+        let child = this.first_child;
+        // child.translationX = -child.width;
+        child.ease({
+            translationX: -child.width,
+            duration: 1500,
+            mode: Clutter.AnimationMode.EASE_OUT_QUAD,
+            onComplete: () => {
+                console.log('slide out!');
+                child._hidden = true;
+            },
+        });
     }
 });
