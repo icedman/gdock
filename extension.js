@@ -2,17 +2,10 @@
 
 import * as Main from 'resource:///org/gnome/shell/ui/main.js';
 import { Extension } from 'resource:///org/gnome/shell/extensions/extension.js';
-import GLib from 'gi://GLib';
 
+import { setTimeout } from './utils.js';
 import { GDock } from './dock.js';
 import { GDockIconItem, GDockDashItem } from './dockItems.js';
-
-const setTimeout = (func, delay, ...args) => {
-  const wrappedFunc = () => {
-    func.apply(this, args);
-  };
-  return GLib.timeout_add(GLib.PRIORITY_DEFAULT, delay, wrappedFunc);
-};
 
 export default class GDockExtension extends Extension {
   enable() {

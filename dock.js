@@ -5,6 +5,8 @@ import GObject from 'gi://GObject';
 import Clutter from 'gi://Clutter';
 import St from 'gi://St';
 
+import { setTimeout } from './utils.js';
+
 export const DockPosition = {
   TOP: 'top',
   BOTTOM: 'bottom',
@@ -81,6 +83,7 @@ export let GDock = GObject.registerClass(
       }
       this.add_child(child);
       this.child = child;
+      child._dock = this;
       return child;
     }
 
@@ -127,6 +130,8 @@ export let GDock = GObject.registerClass(
 
     slide_in() {
       let child = this.first_child;
+      child.remove_all_transitions();
+
       child.ease({
         translationX: 0,
         translationY: 0,
@@ -134,7 +139,9 @@ export let GDock = GObject.registerClass(
         mode: Clutter.AnimationMode.EASE_OUT_QUAD,
         onComplete: () => {
           console.log('slide in!');
-          child._hidden = false;
+          setTimeout(() => {
+            this.layout();
+          }, 1050);
         }
       });
     }
@@ -144,7 +151,6 @@ export let GDock = GObject.registerClass(
 
       let targetX = 0;
       let targetY = 0;
-
       if (this.is_vertical()) {
         if (this._position == DockPosition.LEFT) {
           targetX = -child.width;
@@ -159,6 +165,7 @@ export let GDock = GObject.registerClass(
         }
       }
 
+      child.remove_all_transitions();
       child.ease({
         translationX: targetX,
         translationY: targetY,
@@ -167,6 +174,9 @@ export let GDock = GObject.registerClass(
         onComplete: () => {
           console.log('slide out!');
           child._hidden = true;
+          setTimeout(() => {
+            this.layout();
+          }, 1050);
         }
       });
     }
@@ -211,11 +221,12 @@ export let GDock = GObject.registerClass(
       this._center_to_container(this, child);
 
       let [cx, cy] = child.get_transformed_position();
-      console.log(cy);
       this._struts.x = cx;
       this._struts.y = cy;
       this._struts.width = child.width;
       this._struts.height = child.height;
+      this._struts.affectsInputRegion =
+        child.translationX + child.translationY == 0;
     }
   }
 );
