@@ -58,6 +58,7 @@ export let GDock = GObject.registerClass(
       let child = this.first_child;
       child.ease({
         translationX: 0,
+        translationY: 0,
         duration: 1500,
         mode: Clutter.AnimationMode.EASE_OUT_QUAD,
         onComplete: () => {
@@ -69,8 +70,27 @@ export let GDock = GObject.registerClass(
 
     slide_out() {
       let child = this.first_child;
+
+      let targetX = 0;
+      let targetY = 0;
+
+      if (this.is_vertical()) {
+        if (this._position == DockPosition.LEFT) {
+          targetX = -child.width;
+        } else {
+          targetX = child.width;
+        }
+      } else {
+        if (this._position == DockPosition.TOP) {
+          targetY = -child.height;
+        } else {
+          targetY = child.height;
+        }
+      }
+
       child.ease({
-        translationX: -child.width,
+        translationX: targetX,
+        translationY: targetY,
         duration: 1500,
         mode: Clutter.AnimationMode.EASE_OUT_QUAD,
         onComplete: () => {
@@ -87,24 +107,30 @@ export let GDock = GObject.registerClass(
       );
     }
 
-    layout() {
-      // position the dock
-      this.x = this._monitor.x + this._monitor.width / 2 - this.width / 2;
-      this.y = this._monitor.y + this._monitor.height / 2 - this.height / 2;
-
+    _center_to_container(container, child) {
+      child.x = container.width / 2 - child.width / 2;
+      child.y = container.height / 2 - child.height / 2;
       if (this.is_vertical()) {
         if (this._position == DockPosition.LEFT) {
-          this.x = this._monitor.x;
+          child.x = 0;
         } else {
-          this.x = this._monitor.x + this._monitor.width - this.width;
+          child.x = container.width - child.width;
         }
       } else {
         if (this._position == DockPosition.TOP) {
-          this.y = this._monitor.y;
+          child.y = 0;
         } else {
-          this.y = this._monitor.y + this._monitor.height - this.height;
+          child.y = container.height - child.height;
         }
       }
+    }
+
+    layout() {
+      this._center_to_container(this._monitor, this);
+      this.x += this._monitor.x;
+      this.y += this._monitor.y;
+
+      this._center_to_container(this, this.first_child);
     }
   }
 );
