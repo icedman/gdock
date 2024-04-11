@@ -30,7 +30,7 @@ export let GDockItem = GObject.registerClass(
       });
     }
 
-    preferred_constraints(dock) {
+    layout(dock) {
       let pad_width = 60;
       let pad_height = 60;
       if (dock.is_vertical()) {
@@ -64,7 +64,7 @@ export let GDock = GObject.registerClass(
       });
 
       this._hidden = false;
-      this._position = DockPosition.LEFT;
+      this._position = DockPosition.TOP;
       this._monitor = Main.layoutManager.primaryMonitor;
     }
 
@@ -150,7 +150,7 @@ export let GDock = GObject.registerClass(
 
     layout() {
       let child = this.first_child;
-      let constraints = child.preferred_constraints(this);
+      let constraints = child.layout(this);
       if (constraints) {
         this.width = constraints.dock_width;
         this.height = constraints.dock_height;
