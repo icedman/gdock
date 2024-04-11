@@ -77,6 +77,30 @@ export let GDock = GObject.registerClass(
       return child;
     }
 
+    dock(position = DockPosition.BOTTOM) {
+      if (this._added_to_chrome) {
+        return;
+      }
+
+      Main.layoutManager.addChrome(this, {
+        affectsStruts: false,
+        affectsInputRegion: false,
+        trackFullscreen: false
+      });
+
+      this._added_to_chrome = true;
+    }
+
+    undock() {
+      if (!this._added_to_chrome) {
+        return;
+      }
+
+      Main.layoutManager.removeChrome(this);
+
+      this._added_to_chrome = false;
+    }
+
     slide_in() {
       let child = this.first_child;
       child.ease({

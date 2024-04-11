@@ -5,3 +5,9 @@
 .dock-item-box {
     border: 2px solid yellow;
 }
+
+#GDockItem #dash {
+    margin: 0px !important;
+    padding: 0px !important;
+    border: 2px solid blue;
+}

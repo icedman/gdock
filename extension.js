@@ -18,19 +18,19 @@ export default class GDockExtension extends Extension {
   enable() {
     console.log('The Gnome Dock - enabled');
     this._gdock = new GDock();
-    Main.uiGroup.add_child(this._gdock);
     // this._gdock.set_child(new GDockIconItem());
     this._gdock.set_child(new GDockDashItem());
 
-    Main.overview.gdock = this;
-
+    this._gdock.dock();
     setTimeout(() => {
       this._gdock.layout();
     }, 500);
+
+    Main.overview.gdock = this;
   }
 
   disable() {
-    Main.uiGroup.remove_child(this._gdock);
+    this._gdock.undock();
     this._gdock = null;
     console.log('The Gnome Dock - disabled');
   }
