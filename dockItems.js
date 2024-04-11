@@ -20,8 +20,8 @@ export let GDockIconItem = GObject.registerClass(
         clip_to_allocation: true,
         x_align: Clutter.ActorAlign.CENTER,
         y_align: Clutter.ActorAlign.CENTER,
-        offscreen_redirect: Clutter.OffscreenRedirect.ALWAYS,
-        style_class: 'dock-item-box'
+        offscreen_redirect: Clutter.OffscreenRedirect.ALWAYS
+        // style_class: 'dock-box'
       });
 
       let gicon = new Gio.ThemedIcon({ name: 'folder' });
@@ -46,8 +46,8 @@ export let GDockDashItem = GObject.registerClass(
         clip_to_allocation: true,
         x_align: Clutter.ActorAlign.CENTER,
         y_align: Clutter.ActorAlign.CENTER,
-        offscreen_redirect: Clutter.OffscreenRedirect.ALWAYS,
-        style_class: 'dock-item-box'
+        offscreen_redirect: Clutter.OffscreenRedirect.ALWAYS
+        // style_class: 'dock-box'
       });
 
       this.dash = new Dash();

@@ -25,8 +25,8 @@ export let GDockItem = GObject.registerClass(
         clip_to_allocation: true,
         x_align: Clutter.ActorAlign.CENTER,
         y_align: Clutter.ActorAlign.CENTER,
-        offscreen_redirect: Clutter.OffscreenRedirect.ALWAYS,
-        style_class: 'dock-item-box'
+        offscreen_redirect: Clutter.OffscreenRedirect.ALWAYS
+        // style_class: 'dock-box'
       });
     }
 
@@ -59,13 +59,20 @@ export let GDock = GObject.registerClass(
         clip_to_allocation: true,
         x_align: Clutter.ActorAlign.CENTER,
         y_align: Clutter.ActorAlign.CENTER,
-        offscreen_redirect: Clutter.OffscreenRedirect.ALWAYS,
-        style_class: 'dock-box'
+        offscreen_redirect: Clutter.OffscreenRedirect.ALWAYS
+        // style_class: 'dock-box'
       });
 
       this._hidden = false;
       this._position = DockPosition.TOP;
       this._monitor = Main.layoutManager.primaryMonitor;
+
+      this._struts = new St.Widget({
+        name: 'GDockStruts',
+        reactive: false,
+        track_hover: false
+        // style_class: 'dock-box'
+      });
     }
 
     set_child(child) {
@@ -77,9 +84,17 @@ export let GDock = GObject.registerClass(
       return child;
     }
 
-    dock(position = DockPosition.BOTTOM) {
+    dock(position) {
       if (this._added_to_chrome) {
-        return;
+        if (position != null && position != this._position) {
+          this.undock();
+        } else {
+          return;
+        }
+      }
+
+      if (position) {
+        this._position = position;
       }
 
       Main.layoutManager.addChrome(this, {
@@ -88,7 +103,15 @@ export let GDock = GObject.registerClass(
         trackFullscreen: false
       });
 
+      Main.layoutManager.addChrome(this._struts, {
+        affectsStruts: true,
+        affectsInputRegion: false,
+        trackFullscreen: false
+      });
+
       this._added_to_chrome = true;
+
+      this.layout();
     }
 
     undock() {
@@ -97,6 +120,7 @@ export let GDock = GObject.registerClass(
       }
 
       Main.layoutManager.removeChrome(this);
+      Main.layoutManager.removeChrome(this._struts);
 
       this._added_to_chrome = false;
     }
@@ -185,6 +209,13 @@ export let GDock = GObject.registerClass(
       this.y += this._monitor.y;
 
       this._center_to_container(this, child);
+
+      let [cx, cy] = child.get_transformed_position();
+      console.log(cy);
+      this._struts.x = cx;
+      this._struts.y = cy;
+      this._struts.width = child.width;
+      this._struts.height = child.height;
     }
   }
 );
