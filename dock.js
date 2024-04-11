@@ -8,6 +8,8 @@ import St from 'gi://St';
 import { isOverlapRect } from './utils.js';
 import { Services } from './services.js';
 
+const ANIM_SLIDE_DURATION = 500;
+
 export const DockPosition = {
   TOP: 'top',
   BOTTOM: 'bottom',
@@ -25,7 +27,7 @@ export let GDockItem = GObject.registerClass(
         track_hover: false,
         width: 64,
         height: 64,
-        clip_to_allocation: true,
+        clip_to_allocation: false,
         x_align: Clutter.ActorAlign.CENTER,
         y_align: Clutter.ActorAlign.CENTER,
         offscreen_redirect: Clutter.OffscreenRedirect.ALWAYS,
@@ -46,13 +48,17 @@ export let GDockItem = GObject.registerClass(
         dock_height: this.height + pad_height,
       };
     }
+
+    on_dock(dock) {}
+
+    on_undock(dock) {}
   }
 );
 
 export let GDock = GObject.registerClass(
   {},
   class GDock extends St.Widget {
-    _init(params) {
+    _init(params = {}) {
       super._init({
         name: 'GDock',
         reactive: false,
@@ -80,13 +86,34 @@ export let GDock = GObject.registerClass(
       this._settings = {
         dodge: true,
       };
+
+      this._foreground = new St.Widget({
+        name: 'GDockFg',
+        reactive: false,
+        track_hover: false,
+      });
+
+      this._background = new St.Widget({
+        name: 'GDockBg',
+        reactive: false,
+        track_hover: false,
+      });
+      this.add_child(this._background);
+      this.add_child(this._foreground);
+
+      if (params.child) {
+        this.set_child(params.child);
+      }
+      if (params.position) {
+        this.dock(params.position);
+      }
     }
 
     set_child(child) {
       if (this.child) {
         this.remove_child(this.child);
       }
-      this.add_child(child);
+      this.insert_child_above(child, this._background);
       this.child = child;
       child._dock = this;
       return child;
@@ -105,34 +132,35 @@ export let GDock = GObject.registerClass(
         this._position = position;
       }
 
+      Main.layoutManager.addChrome(this._struts, {
+        affectsStruts: !this._settings.dodge,
+        affectsInputRegion: false,
+        trackFullscreen: false,
+      });
+      
       Main.layoutManager.addChrome(this, {
         affectsStruts: false,
         affectsInputRegion: false,
         trackFullscreen: false,
       });
 
-      Main.layoutManager.addChrome(this._struts, {
-        affectsStruts: !this._settings.dodge,
-        affectsInputRegion: false,
-        trackFullscreen: false,
-      });
-
       this._added_to_chrome = true;
 
-      Services.instance().connectObject(
-        'window-geometry-changed',
-        (service, windows) => {
-          this.debounced_autohide_dodge_windows();
-        },
-        this
-      );
+      if (this.child) {
+        this.child.on_dock(this);
+      }
 
+      this.layout();
       this.debounced_layout();
     }
 
     undock() {
       if (!this._added_to_chrome) {
         return;
+      }
+
+      if (this.child) {
+        this.child.on_undock(this);
       }
 
       Main.layoutManager.removeChrome(this);
@@ -144,23 +172,22 @@ export let GDock = GObject.registerClass(
     }
 
     slide_in() {
-      let child = this.first_child;
+      let child = this.child;
       child.remove_all_transitions();
 
       child.ease({
         translationX: 0,
         translationY: 0,
-        duration: 750,
+        duration: ANIM_SLIDE_DURATION,
         mode: Clutter.AnimationMode.EASE_OUT_QUAD,
         onComplete: () => {
-          console.log('slide in!');
           this.debounced_layout();
         },
       });
     }
 
     slide_out() {
-      let child = this.first_child;
+      let child = this.child;
 
       let targetX = 0;
       let targetY = 0;
@@ -182,10 +209,9 @@ export let GDock = GObject.registerClass(
       child.ease({
         translationX: targetX,
         translationY: targetY,
-        duration: 750,
+        duration: ANIM_SLIDE_DURATION,
         mode: Clutter.AnimationMode.EASE_OUT_QUAD,
         onComplete: () => {
-          console.log('slide out!');
           child._hidden = true;
           this.debounced_layout();
         },
@@ -222,7 +248,7 @@ export let GDock = GObject.registerClass(
     }
 
     layout() {
-      let child = this.first_child;
+      let child = this.child;
       let constraints = child.layout(this);
       if (constraints) {
         this.width = constraints.dock_width;
@@ -246,22 +272,25 @@ export let GDock = GObject.registerClass(
           () => {
             this.layout();
           },
-          500,
-          'debounced_layout'
+          500
         );
       } else {
         Services.instance().loTimer.runDebounced(this._debounce_layout_seq);
       }
     }
 
-    autohide_dodge_windows() {
-      let windows = Services.instance().window_tracker.get_tracked_windows();
+    autohide_dodge_windows(windows) {
+      windows = windows || Services.instance().window_tracker.get_tracked_windows();
 
+      let workspace = global.workspace_manager.get_active_workspace_index();
+      windows = windows.filter(
+        (w) =>
+          workspace == w.get_workspace().index() && w.showing_on_its_workspace()
+      );
+      
       if (!this._settings.dodge) {
         return;
       }
-
-      console.log(windows.length);
 
       let strutsRect = [
         this._struts.x,
@@ -274,13 +303,10 @@ export let GDock = GObject.registerClass(
       windows.forEach((w) => {
         let frame = w.get_frame_rect();
         let winRect = [frame.x, frame.y, frame.width, frame.height];
-        console.log('>>>>>>>>>>>>>>');
-        console.log(`${w.title} ${winRect}`);
+        // console.log(`${w.title} ${winRect}`);
         if (isOverlapRect(strutsRect, winRect)) {
-          console.log('overlap!!!');
           should_hide = true;
         }
-        console.log('--------------');
       });
 
       if (should_hide) {
@@ -290,21 +316,21 @@ export let GDock = GObject.registerClass(
       }
     }
 
-    debounced_autohide_dodge_windows() {
+    debounced_autohide_dodge_windows(windows) {
       if (!this._debounce_autohide_dodge_seq) {
         this._debounce_autohide_dodge_seq =
           Services.instance().loTimer.runDebounced(
-            () => {
-              this.autohide_dodge_windows();
+            (s) => {
+              this.autohide_dodge_windows(s.windows);
             },
-            500,
-            'debounced_autohide_dodge_windows'
+            150
           );
       } else {
         Services.instance().loTimer.runDebounced(
           this._debounce_autohide_dodge_seq
         );
       }
+      this._debounce_autohide_dodge_seq.windows = [...windows];
     }
   }
 );

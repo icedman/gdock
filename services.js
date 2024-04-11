@@ -1,8 +1,7 @@
 'use strict';
 
+import * as Main from 'resource:///org/gnome/shell/ui/main.js';
 import Meta from 'gi://Meta';
-import GObject from 'gi://GObject';
-import * as Signals from 'resource:///org/gnome/shell/misc/signals.js';
 
 import { Timer } from './timer.js';
 
@@ -37,7 +36,7 @@ class WindowTracker {
       }
       tracked.push(w);
     });
-    this.services.emit('window-geometry-changed', tracked);
+    this.services.on_windows_update(tracked);
   }
 
   untrack_windows() {
@@ -54,11 +53,6 @@ class WindowTracker {
     let actors = global.get_window_actors();
     let windows = actors.map((a) => a.get_meta_window());
     windows = windows.filter((w) => w._tracked);
-    let workspace = global.workspace_manager.get_active_workspace_index();
-    windows = windows.filter(
-      (w) =>
-        workspace == w.get_workspace().index() && w.showing_on_its_workspace()
-    );
     return windows;
   }
 
@@ -67,13 +61,13 @@ class WindowTracker {
       window.connectObject(
         'position-changed',
         () => {
-          // console.log(`position changed: ${window.title}`);
-          this.services.emit('window-geometry-changed', [window]);
+          console.log(`position changed: ${window.title}`);
+          this.services.on_windows_update([window]);
         },
         'size-changed',
         () => {
           // console.log(`size changed: ${window.title}`);
-          this.services.emit('window-geometry-changed', [window]);
+          this.services.on_windows_update([window]);
         },
         this
       );
@@ -83,7 +77,11 @@ class WindowTracker {
 
   untrack(w) {
     if (window._tracked) {
-      window.disconnectObject(this);
+      try {
+        window.disconnectObject(this);
+      } catch(err) {
+        console.log(err); //<< happens at suspend?
+      }
       window._tracked = false;
     }
   }
@@ -93,22 +91,25 @@ class WindowTracker {
   }
 }
 
-export class Services extends Signals.EventEmitter {
+export class Services {
   static instance() {
     return serviceInstance;
+  }
+
+  constructor(extension) {
+    this.extension = extension;
   }
 
   enable() {
     serviceInstance = this;
 
     this.window_tracker = new WindowTracker(this);
-    this.window_tracker.track_windows();
 
     global.display.connectObject(
       'notify::focus-window',
-      this.update.bind(this),
+      this._onFocusWindow.bind(this),
       'in-fullscreen-changed',
-      this.update.bind(this),
+      this._onFocusWindow.bind(this),
       this
     );
 
@@ -125,6 +126,10 @@ export class Services extends Signals.EventEmitter {
     // for deferred or debounced runs
     this.loTimer = new Timer('lo-res timer');
     this.loTimer.initialize(750);
+
+    this.loTimer.runOnce(() => {
+      this.window_tracker.track_windows();
+    }, 0);
   }
 
   disable() {
@@ -142,6 +147,22 @@ export class Services extends Signals.EventEmitter {
     this._loTimer = null;
 
     serviceInstance = null;
+  }
+
+  _onFocusWindow() {
+    this.update();
+    this.on_windows_update(this.window_tracker.get_tracked_windows());
+  }
+
+  _onFullScreen() {
+    this.update();
+    this.on_windows_update(this.window_tracker.get_tracked_windows());
+  }
+
+  on_windows_update(windows) {
+    this.extension.docks.forEach((dock) => {
+      dock.debounced_autohide_dodge_windows(windows);
+    });
   }
 
   update() {

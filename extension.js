@@ -4,38 +4,33 @@ import * as Main from 'resource:///org/gnome/shell/ui/main.js';
 import { Extension } from 'resource:///org/gnome/shell/extensions/extension.js';
 
 import { Services } from './services.js';
-import { GDock } from './dock.js';
+import { DockPosition, GDock } from './dock.js';
 import { GDockIconItem, GDockDashItem, GDockPanelItem } from './dockItems.js';
 
 export default class GDockExtension extends Extension {
   enable() {
-    this.services = new Services();
+    this.services = new Services(this);
     this.services.enable();
 
     console.log('The Gnome Dock - enabled');
-    this._gdock = new GDock();
-    // this._gdock.set_child(new GDockIconItem());
-    // this._gdock.set_child(new GDockDashItem());
-    this._gdock.set_child(new GDockPanelItem());
-    this._gdock.dock();
+
+    this.docks = [
+      new GDock({ child: new GDockDashItem(), position: DockPosition.BOTTOM }),
+      new GDock({ child: new GDockPanelItem(), position: DockPosition.TOP }),
+      new GDock({ child: new GDockIconItem(), position: DockPosition.LEFT }),
+    ];
 
     Main.overview.gdock = this;
   }
 
   disable() {
-    this._gdock.undock();
-    this._gdock = null;
+    this.docks.forEach((d) => {
+      d.undock();
+    });
+    this.docks = null;
 
     this.services.disable();
     this.services = null;
     console.log('The Gnome Dock - disabled');
-  }
-
-  _onFocusWindow() {
-    this.services.update();
-  }
-
-  _onFullScreen() {
-    this.services.update();
   }
 }
