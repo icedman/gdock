@@ -1,21 +1,21 @@
 .dock-box {
-    border: 2px solid magenta;
+/*    border: 2px solid magenta;*/
 }
 
 #GDockItem #dash * {
+    margin: 0px !important;
+    padding: 0px !important;
     background: transparent !important;
 }
 
 #GDockItem #dash {
-    margin: 0px !important;
-    padding: 0px !important;
     background: transparent !important;
-    border: 2px solid blue;
+/*    border: 2px solid blue;*/
 }
 
 #GDockItem #panel {
     margin: 0px !important;
     padding: 0px !important;
     background: transparent !important;
-    border: 2px solid blue;
+/*    border: 2px solid blue;*/
 }

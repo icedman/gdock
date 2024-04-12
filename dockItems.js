@@ -84,15 +84,15 @@ export let GDockDashItem = GObject.registerClass(
       this.dash.last_child.layout_manager.orientation = vertical;
       this.dash._box.layout_manager.orientation = vertical;
 
-      let pad_width = 60;
-      let pad_height = 60;
+      let pad_width = 80;
+      let pad_height = 80;
       this.width = this.dash.width;
-      this.height = this.dash.height;
+      this.height = this.dash.height + 20;
 
       if (vertical) {
-        pad_height += 60 * 2;
+        pad_height += 80 * 2;
       } else {
-        pad_width += 60 * 2;
+        pad_width += 80 * 2;
       }
 
       return {
@@ -127,10 +127,17 @@ export let GDockDashItem = GObject.registerClass(
         this.dock._background.add_child(this._background);
       }
 
-      this._background.x = this.x;
+      let first = this._icons[0];
+      let last = this._icons[this._icons.length - 1];
+
+      let bgHeight = first._icon.icon_size * 1.2;
+      this._background.x = this.x + first._icon.translationX;
       this._background.y = this.y;
-      this._background.width = this.width;
-      this._background.height = this.height;
+      this._background.width =
+        this.width + (-first._icon.translationX + last._icon.translationX);
+      this._background.height = bgHeight; // this.height;
+      this._background.translationX = this.translationX;
+      this._background.translationY = this.translationY;
 
       // render foreground here
 
@@ -160,6 +167,8 @@ export let GDockPanelItem = GObject.registerClass(
     }
 
     layout(dock) {
+      this.dock = dock;
+
       if (dock.is_vertical()) {
         dock.visible = false;
         this.width = 0;
@@ -184,6 +193,21 @@ export let GDockPanelItem = GObject.registerClass(
         dock_width: this.width + pad_width,
         dock_height: this.height + pad_height
       };
+    }
+
+    on_animate(dt) {
+      // render background here
+      if (!this._background) {
+        this._background = new BackgroundCanvas();
+        this.dock._background.add_child(this._background);
+      }
+
+      this._background.x = this.x;
+      this._background.y = this.y;
+      this._background.width = this.width;
+      this._background.height = this.height;
+      this._background.translationX = this.translationX;
+      this._background.translationY = this.translationY;
     }
 
     on_dock(dock) {
