@@ -9,9 +9,10 @@ import Gio from 'gi://Gio';
 
 import { Dash } from 'resource:///org/gnome/shell/ui/dash.js';
 
-import { IconsAnimator } from './effects.js';
+import { IconsAnimator, Linear, Bounce } from './effects.js';
 import { BackgroundCanvas } from './background.js';
 import { GDockItem, DockPosition } from './dock.js';
+import { Services } from './services.js';
 
 export let GDockIconItem = GObject.registerClass(
   {},
@@ -56,6 +57,8 @@ export let GDockDashItem = GObject.registerClass(
         // style_class: 'dock-box'
       });
 
+      this._icon_size = 64;
+
       this.dash = new Dash();
       this.dash._box.clip_to_allocation = false;
       this.dash._background.visible = false;
@@ -87,13 +90,13 @@ export let GDockDashItem = GObject.registerClass(
       this.width = this.dash.width;
       this.height = this.dash.height;
 
-      let pad_width = 80;
-      let pad_height = 80;
+      let pad_width = this._icon_size * 2;
+      let pad_height = this._icon_size * 2;
       if (vertical) {
-        pad_height += 80 * 2;
+        pad_height += this._icon_size * 2;
         this.width += 20;
       } else {
-        pad_width += 80 * 2;
+        pad_width += this._icon_size * 2;
         this.height += 20;
       }
 
@@ -112,6 +115,7 @@ export let GDockDashItem = GObject.registerClass(
       ]);
 
       this._icons.forEach((c) => {
+        c._icon.set_icon_size(this._icon_size);
         if (c._hooked) {
           return;
         }
@@ -120,6 +124,18 @@ export let GDockDashItem = GObject.registerClass(
         c._icon.reactive = true;
         if (c._grid) {
           c._grid.style = 'background: none !important;';
+        }
+
+        if (c._appwell && !c._appwell._activate) {
+          c._appwell._activate = c._appwell.activate;
+          c._appwell.activate = () => {
+            try {
+              this._maybeBounce(c);
+              c._appwell._activate();
+            } catch (err) {
+              // happens with dummy DashIcons
+            }
+          };
         }
       });
 
@@ -135,7 +151,7 @@ export let GDockDashItem = GObject.registerClass(
       let pad = 8;
       let dp = this.dock.get_transformed_position();
       let ip = first.get_transformed_position();
-      let is = first._icon.icon_size;
+      let [is, xx] = first.get_transformed_size();
 
       this._background.x = ip[0] - dp[0] + first._icon.translationX - pad;
       this._background.y = ip[1] - dp[1] + first._icon.translationY - pad;
@@ -157,10 +173,114 @@ export let GDockDashItem = GObject.registerClass(
 
       // render foreground here
 
-      return this.animator.animate(dt, {
+      let didAnimate = this.animator.animate(dt, {
         dock: this.dock,
         pointer: global.get_pointer(),
+        iconSize: this._icon_size,
+        scaleFactor: this.dock._monitor.geometry_scale,
       });
+
+      if (!this.animator._hoveredIcon && !this.dash.hover) {
+        this.dock.debounce_end_animation();
+      }
+
+      return didAnimate;
+    }
+
+    _maybeBounce(container) {
+      if (
+        !container.child.app ||
+        (container.child.app &&
+          container.child.app.get_n_windows &&
+          !container.child.app.get_n_windows())
+      ) {
+        if (container.child) {
+          this._bounceIcon(container.child);
+        }
+      }
+    }
+
+    _bounceIcon(appwell) {
+      let services = Services.instance();
+      let dock = this.dock;
+
+      const BOUNCE_HEIGHT = 0.5;
+
+      // let scaleFactor = dock.getMonitor().geometry_scale;
+      //! why not scaleFactor?
+      let travel = (this._icon_size / 3) * ((0.25 + BOUNCE_HEIGHT) * 1.5);
+      // * scaleFactor;
+      appwell.translation_y = 0;
+
+      let container = appwell.get_parent();
+      let icon = container._icon;
+
+      const translateDecor = (container, appwell) => {
+        if (container._renderer) {
+          container._renderer.translationY = appwell.translationY;
+        }
+        if (container._image) {
+          container._image.translationY = appwell.translationY;
+        }
+        if (container._badge) {
+          container._badge.translationY = appwell.translationY;
+        }
+      };
+
+      let t = 250;
+      let _frames = [
+        {
+          _duration: t,
+          _func: (f, s) => {
+            let res = Linear.easeNone(f._time, 0, travel, f._duration);
+            if (dock.is_vertical()) {
+              appwell.translation_x =
+                dock._position == DockPosition.LEFT ? res : -res;
+            } else {
+              appwell.translation_y =
+                dock._position == DockPosition.BOTTOM ? -res : res;
+            }
+            translateDecor(container, appwell);
+          },
+        },
+        {
+          _duration: t * 3,
+          _func: (f, s) => {
+            let res = Bounce.easeOut(f._time, travel, -travel, f._duration);
+            if (dock.is_vertical()) {
+              appwell.translation_x = appwell.translation_x =
+                dock._position == DockPosition.LEFT ? res : -res;
+            } else {
+              appwell.translation_y =
+                dock._position == DockPosition.BOTTOM ? -res : res;
+              if (container._renderer) {
+                container._renderer.translationY = appwell.translationY;
+              }
+            }
+            translateDecor(container, appwell);
+          },
+        },
+      ];
+
+      let frames = [];
+      for (let i = 0; i < 3; i++) {
+        _frames.forEach((b) => {
+          frames.push({
+            ...b,
+          });
+        });
+      }
+
+      services.hiTimer.runAnimation([
+        ...frames,
+        {
+          _duration: 10,
+          _func: (f, s) => {
+            appwell.translation_y = 0;
+            translateDecor(container, appwell);
+          },
+        },
+      ]);
     }
   }
 );

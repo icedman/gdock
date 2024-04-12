@@ -5,6 +5,48 @@ import Graphene from 'gi://Graphene';
 import { get_distance_sqr } from './utils.js';
 import { DockPosition } from './dock.js';
 
+/* PennerEasing */
+export const Linear = {
+  easeNone: (t, b, c, d) => {
+    return (c * t) / d + b;
+  },
+  easeIn: (t, b, c, d) => {
+    return (c * t) / d + b;
+  },
+  easeOut: (t, b, c, d) => {
+    return (c * t) / d + b;
+  },
+  easeInOut: (t, b, c, d) => {
+    return (c * t) / d + b;
+  },
+};
+
+export const Bounce = {
+  easeIn: (t, b, c, d) => {
+    return c - Bounce.easeOut(d - t, 0, c, d) + b;
+  },
+
+  easeOut: (t, b, c, d) => {
+    if ((t /= d) < 1 / 2.75) {
+      return c * (7.5625 * t * t) + b;
+    } else if (t < 2 / 2.75) {
+      let postFix = (t -= 1.5 / 2.75);
+      return c * (7.5625 * postFix * t + 0.75) + b;
+    } else if (t < 2.5 / 2.75) {
+      let postFix = (t -= 2.25 / 2.75);
+      return c * (7.5625 * postFix * t + 0.9375) + b;
+    } else {
+      let postFix = (t -= 2.625 / 2.75);
+      return c * (7.5625 * postFix * t + 0.984375) + b;
+    }
+  },
+
+  easeInOut: (t, b, c, d) => {
+    if (t < d / 2) return Bounce.easeIn(t * 2, 0, c, d) * 0.5 + b;
+    else return Bounce.easeOut(t * 2 - d, 0, c, d) * 0.5 + c * 0.5 + b;
+  },
+};
+
 export const Interpolate = {
   linearTo: (start, end, time, speed) => {
     let dst = end - start;
@@ -100,15 +142,13 @@ export class IconsAnimator {
   }
 
   animate(dt, params) {
-    let { dock, pointer } = params;
+    let { dock, pointer, iconSize, scaleFactor } = params;
     let position = dock._position;
     let vertical = dock.is_vertical();
     let didAnimate = false;
 
     let [px, py] = pointer;
     let animateIcons = this._icons;
-    let iconSize = 64; // dock._iconSizeScaledDown;
-    let scaleFactor = 1; // dock._scaleFactor;
 
     let nearestIdx = -1;
     let nearestIcon = null;
@@ -257,6 +297,8 @@ export class IconsAnimator {
         }
       }
     }
+
+    this._hoveredIcon = hoveredIcon;
 
     // re-center to hovered icon
     let TRANSLATE_COEF = 24;

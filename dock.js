@@ -274,6 +274,12 @@ export let GDock = GObject.registerClass(
       let child = this.child;
       let constraints = child.layout(this);
       if (constraints) {
+        if (constraints.dock_width > this._monitor.width) {
+          constraints.dock_width = this._monitor.width;
+        }
+        if (constraints.dock_height > this._monitor.height) {
+          constraints.dock_height = this._monitor.height;
+        }
         this.width = constraints.dock_width;
         this.height = constraints.dock_height;
       }
