@@ -3,6 +3,10 @@
 import * as Main from 'resource:///org/gnome/shell/ui/main.js';
 import { Extension } from 'resource:///org/gnome/shell/extensions/extension.js';
 
+import Gio from 'gi://Gio';
+import Cairo from 'gi://cairo';
+import GdkPixbuf from 'gi://GdkPixbuf';
+
 import { Services } from './services.js';
 import { DockPosition, GDock } from './dock.js';
 import { GDockIconItem, GDockDashItem, GDockPanelItem } from './dockItems.js';

@@ -8,8 +8,9 @@ import St from 'gi://St';
 import Gio from 'gi://Gio';
 
 import { Dash } from 'resource:///org/gnome/shell/ui/dash.js';
-import { IconsAnimator } from './effects.js';
 
+import { IconsAnimator } from './effects.js';
+import { BackgroundCanvas } from './background.js';
 import { GDockItem } from './dock.js';
 
 export let GDockIconItem = GObject.registerClass(
@@ -108,7 +109,7 @@ export let GDockDashItem = GObject.registerClass(
         [this.dash._showAppsIcon]
       ]);
 
-      this._icons.forEach((c) => {
+      this._icons.forEach(c => {
         if (c._hooked) {
           return;
         }
@@ -121,6 +122,15 @@ export let GDockDashItem = GObject.registerClass(
       });
 
       // render background here
+      if (!this._background) {
+        this._background = new BackgroundCanvas();
+        this.dock._background.add_child(this._background);
+      }
+
+      this._background.x = this.x;
+      this._background.y = this.y;
+      this._background.width = this.width;
+      this._background.height = this.height;
 
       // render foreground here
 
