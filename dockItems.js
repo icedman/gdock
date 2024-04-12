@@ -108,6 +108,22 @@ export let GDockDashItem = GObject.registerClass(
         [this.dash._showAppsIcon]
       ]);
 
+      this._icons.forEach((c) => {
+        if (c._hooked) {
+          return;
+        }
+        c._hooked = true;
+        c._icon.track_hover = true;
+        c._icon.reactive = true;
+        if (c._grid) {
+          c._grid.style = 'background: none !important;';
+        }
+      });
+
+      // render background here
+
+      // render foreground here
+
       return this.animator.animate(dt, global.get_pointer());
     }
   }

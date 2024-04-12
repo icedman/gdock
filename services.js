@@ -164,9 +164,11 @@ export class Services {
   }
 
   on_windows_update(windows) {
-    this.extension.docks.forEach(dock => {
-      dock.debounced_autohide_dodge_windows(windows);
-    });
+    if (this.extension.docks) {
+      this.extension.docks.forEach(dock => {
+        dock.debounced_autohide_dodge_windows(windows);
+      });
+    }
   }
 
   update() {
