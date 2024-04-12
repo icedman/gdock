@@ -6,10 +6,11 @@ import GObject from 'gi://GObject';
 import Clutter from 'gi://Clutter';
 import St from 'gi://St';
 import Gio from 'gi://Gio';
+import Graphene from 'gi://Graphene';
 
 import { Dash } from 'resource:///org/gnome/shell/ui/dash.js';
 
-import { IconsAnimator, Linear, Bounce } from './effects.js';
+import { IconsAnimator, Interpolate, Linear, Bounce } from './effects.js';
 import { BackgroundCanvas } from './background.js';
 import { GDockItem, DockPosition } from './dock.js';
 import { Services } from './services.js';
@@ -61,7 +62,10 @@ export let GDockDashItem = GObject.registerClass(
 
       this.dash = new Dash();
       this.dash._box.clip_to_allocation = false;
+      // this.dash._showAppsIcon.visible = false;
       this.dash._background.visible = false;
+
+      this.show_apps_at_front = true;
 
       this.dash.reactive = true;
       this.dash.track_hover = true;
@@ -100,6 +104,17 @@ export let GDockDashItem = GObject.registerClass(
         this.height += 20;
       }
 
+      // showAppsAtFront
+      let container = this.dash._box.get_parent();
+      if (container.first_child != this.dash._showAppsIcon && this.show_apps_at_front) {
+        container.remove_child(this.dash._showAppsIcon)
+        container.insert_child_below(this.dash._showAppsIcon, container.first_child);
+      }
+      if (container.first_child == this.dash._showAppsIcon && !this.show_apps_at_front) {
+        container.remove_child(this.dash._showAppsIcon)
+        container.add_child(this.dash._showAppsIcon, container.first_child);
+      }
+
       return {
         dock_width: this.width + pad_width,
         dock_height: this.height + pad_height,
@@ -109,16 +124,36 @@ export let GDockDashItem = GObject.registerClass(
     on_animate(dt) {
       if (!this.dock) return;
 
-      this._icons = this.animator.findIcons([
-        this.dash._box.get_children(),
-        [this.dash._showAppsIcon],
-      ]);
+      let iconSources = [];
+
+      if (this.dash._box.visible) {
+        iconSources.push(this.dash._box.get_children());
+      }
+      if (this.dash._showAppsIcon.visible) {
+        if (this.show_apps_at_front) {
+          iconSources.unshift([this.dash._showAppsIcon]);
+        } else {
+          iconSources.push([this.dash._showAppsIcon]);
+        }
+      }
+
+      this._icons = this.animator.findIcons(iconSources);
+      if (this._icons.length == 0) {
+        return;
+      }
 
       this._icons.forEach((c) => {
         c._icon.set_icon_size(this._icon_size);
         if (c._hooked) {
           return;
         }
+
+        let pv = new Graphene.Point();
+        pv.init(0.5, 0.5);
+        c._icon.pivot_point = pv;
+
+        c._icon.remove_all_transitions();
+
         c._hooked = true;
         c._icon.track_hover = true;
         c._icon.reactive = true;
@@ -149,12 +184,8 @@ export let GDockDashItem = GObject.registerClass(
       let last = this._icons[this._icons.length - 1];
 
       let pad = 8;
-      let dp = this.dock.get_transformed_position();
       let ip = first.get_transformed_position();
       let [is, xx] = first.get_transformed_size();
-
-      this._background.x = ip[0] - dp[0] + first._icon.translationX - pad;
-      this._background.y = ip[1] - dp[1] + first._icon.translationY - pad;
 
       if (this.dock.is_vertical()) {
         this._background.height = this.height + pad * 2;
@@ -168,8 +199,12 @@ export let GDockDashItem = GObject.registerClass(
           -first._icon.translationX + last._icon.translationX;
       }
 
+      this._background.x = this.x + this.width/2 - this._background.width/2;
+      this._background.y = this.y + this.height/2 - this._background.height/2;
+
       this._background.translationX = this.translationX;
       this._background.translationY = this.translationY;
+      this._background.visible = true;
 
       // render foreground here
 
@@ -181,7 +216,7 @@ export let GDockDashItem = GObject.registerClass(
       });
 
       if (!this.animator._hoveredIcon && !this.dash.hover) {
-        this.dock.debounce_end_animation();
+        // didAnimate = false;
       }
 
       return didAnimate;

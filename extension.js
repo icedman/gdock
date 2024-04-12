@@ -20,8 +20,8 @@ export default class GDockExtension extends Extension {
 
     this.docks = [
       new GDock({ child: new GDockDashItem(), position: DockPosition.BOTTOM }),
-      new GDock({ child: new GDockPanelItem(), position: DockPosition.TOP }),
-      new GDock({ child: new GDockIconItem(), position: DockPosition.RIGHT }),
+      // new GDock({ child: new GDockPanelItem(), position: DockPosition.TOP }),
+      // new GDock({ child: new GDockIconItem(), position: DockPosition.RIGHT }),
     ];
 
     Main.overview.gdock = this;

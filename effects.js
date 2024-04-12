@@ -1,7 +1,5 @@
 'use strict';
 
-import Graphene from 'gi://Graphene';
-
 import { get_distance_sqr } from './utils.js';
 import { DockPosition } from './dock.js';
 
@@ -62,7 +60,7 @@ export const Interpolate = {
 
 const ANIM_ICON_RAISE = 0.6;
 const ANIM_ICON_SCALE = 1.5;
-const ANIM_ICON_HIT_AREA = 2.5;
+const ANIM_ICON_HIT_AREA = 1.25;
 
 export class IconsAnimator {
   _inspectIcon(c) {
@@ -123,6 +121,8 @@ export class IconsAnimator {
   }
 
   findIcons(sources) {
+    // cache!
+
     this._iconsAndSeparators = [];
     this._separators = [];
     this._icons = [];
@@ -133,11 +133,6 @@ export class IconsAnimator {
       });
     });
 
-    let pv = new Graphene.Point();
-    pv.init(0.5, 0.5);
-    this._icons.forEach((icon) => {
-      icon._icon.pivot_point = pv;
-    });
     return this._icons;
   }
 
@@ -313,6 +308,10 @@ export class IconsAnimator {
             (icon._translate * TRANSLATE_COEF + nt) / (TRANSLATE_COEF + 1);
         }
       });
+    }
+
+    if (animateIcons.length == 0) {
+      return;
     }
 
     let first = animateIcons[0];

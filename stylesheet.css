@@ -5,11 +5,11 @@
 #GDockItem #dash * {
     margin: 0px !important;
     padding: 0px !important;
-    background: transparent !important;
+/*    background: transparent !important;*/
 }
 
 #GDockItem #dash {
-    background: transparent !important;
+/*    background: transparent !important;*/
 /*    border: 2px solid blue;*/
 }
 

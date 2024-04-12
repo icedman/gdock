@@ -58,7 +58,9 @@ export let GDockItem = GObject.registerClass(
 
     on_undock(dock) {}
 
-    on_animate(dt) {}
+    on_animate(dt) {
+      return false;
+    }
   }
 );
 
@@ -399,8 +401,6 @@ export let GDock = GObject.registerClass(
       } else {
         services.hiTimer.runLoop(this._animation_seq);
       }
-
-      this.debounce_end_animation();
     }
 
     end_animation() {
@@ -408,7 +408,7 @@ export let GDock = GObject.registerClass(
       let services = Services.instance();
       services.hiTimer.cancel(this._animation_seq);
       services.loTimer.cancel(this._debounce_end_seq);
-      this.autohide_dodge_windows();
+      this.debounced_autohide_dodge_windows();
     }
 
     debounce_end_animation() {
