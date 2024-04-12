@@ -17,14 +17,14 @@ export default class GDockExtension extends Extension {
     this.docks = [
       new GDock({ child: new GDockDashItem(), position: DockPosition.BOTTOM }),
       new GDock({ child: new GDockPanelItem(), position: DockPosition.TOP }),
-      new GDock({ child: new GDockIconItem(), position: DockPosition.LEFT }),
+      new GDock({ child: new GDockIconItem(), position: DockPosition.LEFT })
     ];
 
     Main.overview.gdock = this;
   }
 
   disable() {
-    this.docks.forEach((d) => {
+    this.docks.forEach(d => {
       d.undock();
     });
     this.docks = null;

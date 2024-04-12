@@ -13,7 +13,7 @@ const handledWindowTypes = [
   Meta.WindowType.MODAL_DIALOG,
   // Meta.WindowType.TOOLBAR,
   // Meta.WindowType.MENU,
-  Meta.WindowType.UTILITY,
+  Meta.WindowType.UTILITY
   // Meta.WindowType.SPLASHSCREEN
 ];
 
@@ -27,10 +27,10 @@ class WindowTracker {
   track_windows() {
     let tracked = [];
     let actors = global.get_window_actors();
-    let windows = actors.map((a) => a.get_meta_window());
-    windows = windows.filter((w) => w.can_close());
-    windows = windows.filter((w) => w.get_window_type() in handledWindowTypes);
-    windows.forEach((w) => {
+    let windows = actors.map(a => a.get_meta_window());
+    windows = windows.filter(w => w.can_close());
+    windows = windows.filter(w => w.get_window_type() in handledWindowTypes);
+    windows.forEach(w => {
       if (!w._tracked) {
         this.track(w);
       }
@@ -41,8 +41,8 @@ class WindowTracker {
 
   untrack_windows() {
     let actors = global.get_window_actors();
-    let windows = actors.map((a) => a.get_meta_window());
-    windows.forEach((w) => {
+    let windows = actors.map(a => a.get_meta_window());
+    windows.forEach(w => {
       if (w._tracked) {
         this.untrack(w);
       }
@@ -51,8 +51,8 @@ class WindowTracker {
 
   get_tracked_windows() {
     let actors = global.get_window_actors();
-    let windows = actors.map((a) => a.get_meta_window());
-    windows = windows.filter((w) => w._tracked);
+    let windows = actors.map(a => a.get_meta_window());
+    windows = windows.filter(w => w._tracked);
     return windows;
   }
 
@@ -79,7 +79,7 @@ class WindowTracker {
     if (window._tracked) {
       try {
         window.disconnectObject(this);
-      } catch(err) {
+      } catch (err) {
         console.log(err); //<< happens at suspend?
       }
       window._tracked = false;
@@ -88,6 +88,57 @@ class WindowTracker {
 
   update() {
     this.track_windows();
+  }
+}
+
+class PointerTracker {
+  constructor(services) {
+    this.services = services;
+    this._dwell = 0;
+    this._edge = null;
+  }
+
+  update(dt) {
+    let [px, py] = global.get_pointer();
+    let edge = null;
+    let monitor = null;
+
+    const dwell_count = 1000;
+
+    Main.layoutManager.monitors.forEach(m => {
+      if (px == m.x) {
+        edge = 'left';
+        monitor = m;
+      }
+      if (py == m.y) {
+        edge = 'top';
+        monitor = m;
+      }
+      if (px == m.x + m.width - 1) {
+        edge = 'right';
+        monitor = m;
+      }
+      if (py == m.y + m.height - 1) {
+        edge = 'bottom';
+        monitor = m;
+      }
+    });
+
+    if (edge && monitor) {
+      this._dwell += dt;
+    } else {
+      if (this._dwell > dwell_count) {
+        this.services.on_pointer_leave_edge(this._monitor, this._edge);
+      }
+      this._dwell = 0;
+    }
+
+    this._edge = edge;
+    this._monitor = monitor;
+    console.log(`${this._dwell} ${edge}`);
+    if (this._dwell > dwell_count) {
+      this.services.on_pointer_on_edge(this._monitor, this._edge);
+    }
   }
 }
 
@@ -104,6 +155,7 @@ export class Services {
     serviceInstance = this;
 
     this.window_tracker = new WindowTracker(this);
+    this.pointer_tracker = new PointerTracker(this);
 
     global.display.connectObject(
       'notify::focus-window',
@@ -130,6 +182,10 @@ export class Services {
     this.loTimer.runOnce(() => {
       this.window_tracker.track_windows();
     }, 0);
+
+    this.hiTimer.runLoop(s => {
+      this.pointer_tracker.update(s._delay);
+    }, 150);
   }
 
   disable() {
@@ -160,7 +216,20 @@ export class Services {
   }
 
   on_windows_update(windows) {
-    this.extension.docks.forEach((dock) => {
+    this.extension.docks.forEach(dock => {
+      dock.debounced_autohide_dodge_windows(windows);
+    });
+  }
+
+  on_pointer_on_edge(monitor, edge) {
+    this.extension.docks.forEach(dock => {
+      dock.on_pointer_on_edge(monitor, edge);
+    });
+  }
+
+  on_pointer_leave_edge(monitor, edge) {
+    let windows = this.window_tracker.get_tracked_windows();
+    this.extension.docks.forEach(dock => {
       dock.debounced_autohide_dodge_windows(windows);
     });
   }
