@@ -7,6 +7,7 @@ import Clutter from 'gi://Clutter';
 import St from 'gi://St';
 
 import { isOverlapRect, isInRect } from './utils.js';
+import { Interpolate } from './effects.js';
 import { Services } from './services.js';
 
 const ANIM_SLIDE_DURATION = 500;
@@ -381,12 +382,9 @@ export let GDock = GObject.registerClass(
 
       this.animation_interval = ANIM_INTERVAL;
       if (!this._animation_seq) {
-        this._animation_seq = services.hiTimer.runLoop(
-          s => {
-            this.animate(s._delay);
-          },
-          this.animation_interval
-        );
+        this._animation_seq = services.hiTimer.runLoop(s => {
+          this.animate(s._delay);
+        }, this.animation_interval);
       } else {
         services.hiTimer.runLoop(this._animation_seq);
       }
@@ -416,8 +414,19 @@ export let GDock = GObject.registerClass(
     animate(dt) {
       this.layout();
 
-      this.child.translationX = this._targetX;
-      this.child.translationY = this._targetY;
+      let speed = 250 / 1000;
+      this.child.translationX = Interpolate.linearTo(
+        this.child.translationX,
+        this._targetX,
+        dt,
+        speed
+      );
+      this.child.translationY = Interpolate.linearTo(
+        this.child.translationY,
+        this._targetY,
+        dt,
+        speed
+      );
       this.child.on_animate(dt);
 
       // this.debounce_end_animation();
