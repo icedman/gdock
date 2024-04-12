@@ -1,3 +1,5 @@
+'use strict';
+
 import Graphene from 'gi://Graphene';
 
 import { get_distance_sqr } from './utils.js';
@@ -307,6 +309,20 @@ export class IconsAnimator {
         }
       }
 
+      // fix jitterness
+      if (lockPosition && icon._p == 0) {
+        icon._positionCache = icon._positionCache || [];
+        if (icon._positionCache.length > 16) {
+          [translationX, translationY] = icon._positionCache[
+            icon._positionCache.length - 1
+          ];
+        } else {
+          icon._positionCache.push([translationX, translationY]);
+        }
+      } else {
+        icon._positionCache = null;
+      }
+
       //-------------------
       // animate position
       //-------------------
@@ -316,24 +332,26 @@ export class IconsAnimator {
       icon._icon.get_parent().translationX = adjustX;
       icon._icon.get_parent().translationY = adjustY;
 
+      //------------------
       // adjust the labels
+      //-------------------
       let flags = {
         bottom: {
           lx: 0,
-          ly: 0.5 * icon._targetScale * scaleFactor,
+          ly: 0.5 * icon._targetScale * scaleFactor
         },
         top: {
           lx: 0,
-          ly: -1.5 * icon._targetScale * scaleFactor,
+          ly: -1.5 * icon._targetScale * scaleFactor
         },
         left: {
           lx: -1.25 * icon._targetScale * scaleFactor,
-          ly: -1.25,
+          ly: -1.25
         },
         right: {
           lx: 1.5 * icon._targetScale * scaleFactor,
-          ly: -1.25,
-        },
+          ly: -1.25
+        }
       };
 
       let posFlags = flags[position];
@@ -343,8 +361,6 @@ export class IconsAnimator {
         icon._label.translationX = translationX - iconSize * posFlags.lx;
         icon._label.translationY = translationY - iconSize * posFlags.ly;
       }
-
-
     });
 
     this._is_animating = didAnimate;

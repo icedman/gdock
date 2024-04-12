@@ -67,7 +67,9 @@ export let GDockDashItem = GObject.registerClass(
           if (this.dock) {
             this.dock.begin_animation();
           }
-        }, this);
+        },
+        this
+      );
 
       this.add_child(this.dash);
 
@@ -103,7 +105,7 @@ export let GDockDashItem = GObject.registerClass(
 
       this._icons = this.animator.findIcons([
         this.dash._box.get_children(),
-        [ this.dash._showAppsIcon ],
+        [this.dash._showAppsIcon]
       ]);
 
       return this.animator.animate(dt, global.get_pointer());
