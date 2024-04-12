@@ -82,6 +82,28 @@ export let GDock = GObject.registerClass(
         track_hover: false
         // style_class: 'dock-box'
       });
+      this._dwell = new St.Widget({
+        name: 'GDockDwell',
+        reactive: true,
+        track_hover: true,
+        offscreen_redirect: Clutter.OffscreenRedirect.ALWAYS,
+        style_class: 'dock-box'
+      });
+      this._dwell.connectObject(
+        'motion-event',
+        () => {
+          this.slide_in();
+        },
+        'enter-event',
+        () => {
+          this.slide_in();
+        },
+        'leave-event',
+        () => {
+          this.debounced_autohide_dodge_windows();
+        },
+        this
+      );
 
       this._settings = {
         dodge: true
@@ -144,6 +166,12 @@ export let GDock = GObject.registerClass(
         trackFullscreen: false
       });
 
+      Main.layoutManager.addChrome(this._dwell, {
+        affectsStruts: false,
+        affectsInputRegion: false,
+        trackFullscreen: false
+      });
+
       this._added_to_chrome = true;
 
       if (this.child) {
@@ -165,6 +193,7 @@ export let GDock = GObject.registerClass(
 
       Main.layoutManager.removeChrome(this);
       Main.layoutManager.removeChrome(this._struts);
+      Main.layoutManager.removeChrome(this._dwell);
 
       this._added_to_chrome = false;
     }
@@ -262,6 +291,15 @@ export let GDock = GObject.registerClass(
       this._struts.width = child.width;
       this._struts.height = child.height;
       this._snap_to_container_edge(this._monitor, this._struts);
+
+      this._dwell.width = child.width;
+      this._dwell.height = child.height;
+      if (this.is_vertical()) {
+        this._dwell.width = 2;
+      } else {
+        this._dwell.height = 2;
+      }
+      this._snap_to_container_edge(this._monitor, this._dwell);
     }
 
     debounced_layout() {
@@ -316,6 +354,9 @@ export let GDock = GObject.registerClass(
     }
 
     debounced_autohide_dodge_windows(windows) {
+      if (!windows) {
+        windows = Services.instance().window_tracker.get_tracked_windows();
+      }
       if (!this._debounce_autohide_dodge_seq) {
         this._debounce_autohide_dodge_seq = Services.instance().loTimer.runDebounced(
           s => {

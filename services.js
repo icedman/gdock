@@ -91,57 +91,6 @@ class WindowTracker {
   }
 }
 
-class PointerTracker {
-  constructor(services) {
-    this.services = services;
-    this._dwell = 0;
-    this._edge = null;
-  }
-
-  update(dt) {
-    let [px, py] = global.get_pointer();
-    let edge = null;
-    let monitor = null;
-
-    const dwell_count = 1000;
-
-    Main.layoutManager.monitors.forEach(m => {
-      if (px == m.x) {
-        edge = 'left';
-        monitor = m;
-      }
-      if (py == m.y) {
-        edge = 'top';
-        monitor = m;
-      }
-      if (px == m.x + m.width - 1) {
-        edge = 'right';
-        monitor = m;
-      }
-      if (py == m.y + m.height - 1) {
-        edge = 'bottom';
-        monitor = m;
-      }
-    });
-
-    if (edge && monitor) {
-      this._dwell += dt;
-    } else {
-      if (this._dwell > dwell_count) {
-        this.services.on_pointer_leave_edge(this._monitor, this._edge);
-      }
-      this._dwell = 0;
-    }
-
-    this._edge = edge;
-    this._monitor = monitor;
-    console.log(`${this._dwell} ${edge}`);
-    if (this._dwell > dwell_count) {
-      this.services.on_pointer_on_edge(this._monitor, this._edge);
-    }
-  }
-}
-
 export class Services {
   static instance() {
     return serviceInstance;
@@ -155,7 +104,6 @@ export class Services {
     serviceInstance = this;
 
     this.window_tracker = new WindowTracker(this);
-    this.pointer_tracker = new PointerTracker(this);
 
     global.display.connectObject(
       'notify::focus-window',
@@ -182,10 +130,6 @@ export class Services {
     this.loTimer.runOnce(() => {
       this.window_tracker.track_windows();
     }, 0);
-
-    this.hiTimer.runLoop(s => {
-      this.pointer_tracker.update(s._delay);
-    }, 150);
   }
 
   disable() {
@@ -216,19 +160,6 @@ export class Services {
   }
 
   on_windows_update(windows) {
-    this.extension.docks.forEach(dock => {
-      dock.debounced_autohide_dodge_windows(windows);
-    });
-  }
-
-  on_pointer_on_edge(monitor, edge) {
-    this.extension.docks.forEach(dock => {
-      dock.on_pointer_on_edge(monitor, edge);
-    });
-  }
-
-  on_pointer_leave_edge(monitor, edge) {
-    let windows = this.window_tracker.get_tracked_windows();
     this.extension.docks.forEach(dock => {
       dock.debounced_autohide_dodge_windows(windows);
     });
