@@ -8,6 +8,7 @@ import St from 'gi://St';
 import Gio from 'gi://Gio';
 
 import { Dash } from 'resource:///org/gnome/shell/ui/dash.js';
+import { IconsAnimator } from './effects.js';
 
 import { GDockItem } from './dock.js';
 
@@ -55,12 +56,26 @@ export let GDockDashItem = GObject.registerClass(
       });
 
       this.dash = new Dash();
+      this.dash._box.clip_to_allocation = false;
       this.dash._background.visible = false;
 
+      this.dash.reactive = true;
+      this.dash.track_hover = true;
+      this.dash.connectObject(
+        'motion-event',
+        () => {
+          if (this.dock) {
+            this.dock.begin_animation();
+          }
+        }, this);
+
       this.add_child(this.dash);
+
+      this.animator = new IconsAnimator();
     }
 
     layout(dock) {
+      this.dock = dock;
       let vertical = dock.is_vertical();
 
       this.dash.last_child.layout_manager.orientation = vertical;
@@ -71,10 +86,27 @@ export let GDockDashItem = GObject.registerClass(
       this.width = this.dash.width;
       this.height = this.dash.height;
 
+      if (vertical) {
+        pad_height += 60 * 2;
+      } else {
+        pad_width += 60 * 2;
+      }
+
       return {
         dock_width: this.width + pad_width,
         dock_height: this.height + pad_height
       };
+    }
+
+    on_animate(dt) {
+      if (!this.dock) return;
+
+      this._icons = this.animator.findIcons([
+        this.dash._box.get_children(),
+        [ this.dash._showAppsIcon ],
+      ]);
+
+      return this.animator.animate(dt, global.get_pointer());
     }
   }
 );

@@ -427,9 +427,10 @@ export let GDock = GObject.registerClass(
         dt,
         speed
       );
-      this.child.on_animate(dt);
 
-      // this.debounce_end_animation();
+      if (this.child.on_animate(dt)) {
+        this.debounce_end_animation();
+      }
     }
   }
 );

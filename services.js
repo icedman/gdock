@@ -61,7 +61,7 @@ class WindowTracker {
       window.connectObject(
         'position-changed',
         () => {
-          console.log(`position changed: ${window.title}`);
+          // console.log(`position changed: ${window.title}`);
           this.services.on_windows_update([window]);
         },
         'size-changed',
