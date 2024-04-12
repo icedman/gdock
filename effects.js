@@ -99,9 +99,10 @@ export class IconsAnimator {
     return this._icons;
   }
 
-  animate(dt, pointer) {
-    let position = DockPosition.BOTTOM;
-    let vertical = false;
+  animate(dt, params) {
+    let { dock, pointer } = params;
+    let position = dock._position;
+    let vertical = dock.is_vertical();
     let didAnimate = false;
 
     let [px, py] = pointer;

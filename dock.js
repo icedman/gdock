@@ -251,25 +251,26 @@ export let GDock = GObject.registerClass(
       return this._targetX + this._targetY != 0;
     }
 
-    _snap_to_container_edge(container, child) {
+    _snap_to_container_edge(container, child, edge_distance = 0) {
       child.x = container.width / 2 - child.width / 2;
       child.y = container.height / 2 - child.height / 2;
       if (this.is_vertical()) {
         if (this._position == DockPosition.LEFT) {
-          child.x = 0;
+          child.x = 0 + edge_distance;
         } else {
           child.x = container.width - child.width;
         }
       } else {
         if (this._position == DockPosition.TOP) {
-          child.y = 0;
+          child.y = 0 + edge_distance;
         } else {
-          child.y = container.height - child.height;
+          child.y = container.height - child.height - edge_distance;
         }
       }
     }
 
     layout() {
+      let edge_distance = 8;
       let child = this.child;
       let constraints = child.layout(this);
       if (constraints) {
@@ -277,11 +278,17 @@ export let GDock = GObject.registerClass(
         this.height = constraints.dock_height;
       }
 
+      if (this.is_vertical()) {
+        this.width += edge_distance;
+      } else {
+        this.height += edge_distance;
+      }
+
       this._snap_to_container_edge(this._monitor, this);
       this.x += this._monitor.x;
       this.y += this._monitor.y;
 
-      this._snap_to_container_edge(this, child);
+      this._snap_to_container_edge(this, child, edge_distance);
 
       this._struts.width = child.width;
       this._struts.height = child.height;

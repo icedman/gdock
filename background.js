@@ -47,7 +47,16 @@ export let BackgroundCanvas = GObject.registerClass(
         rad = width * rad_percent;
       }
 
-      Drawing.draw_rounded_rect(ctx, [0, 0, 0, 0.7], 0, 0, width, height, 0, rad);
+      Drawing.draw_rounded_rect(
+        ctx,
+        [0, 0, 0, 0.7],
+        0,
+        0,
+        width,
+        height,
+        0,
+        rad
+      );
 
       ctx.$dispose();
     }

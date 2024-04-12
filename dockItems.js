@@ -11,7 +11,7 @@ import { Dash } from 'resource:///org/gnome/shell/ui/dash.js';
 
 import { IconsAnimator } from './effects.js';
 import { BackgroundCanvas } from './background.js';
-import { GDockItem } from './dock.js';
+import { GDockItem, DockPosition } from './dock.js';
 
 export let GDockIconItem = GObject.registerClass(
   {},
@@ -84,15 +84,17 @@ export let GDockDashItem = GObject.registerClass(
       this.dash.last_child.layout_manager.orientation = vertical;
       this.dash._box.layout_manager.orientation = vertical;
 
+      this.width = this.dash.width;
+      this.height = this.dash.height;
+
       let pad_width = 80;
       let pad_height = 80;
-      this.width = this.dash.width;
-      this.height = this.dash.height + 20;
-
       if (vertical) {
         pad_height += 80 * 2;
+        this.width += 20;
       } else {
         pad_width += 80 * 2;
+        this.height += 20;
       }
 
       return {
@@ -130,18 +132,35 @@ export let GDockDashItem = GObject.registerClass(
       let first = this._icons[0];
       let last = this._icons[this._icons.length - 1];
 
-      let pad = 10;
-      this._background.x = this.x + first._icon.translationX - pad;
-      this._background.y = this.y;
-      this._background.width =
-        this.width + (-first._icon.translationX + last._icon.translationX) + pad * 2;
-      this._background.height = this.height;
+      let pad = 8;
+      let dp = this.dock.get_transformed_position();
+      let ip = first.get_transformed_position();
+      let is = first._icon.icon_size;
+
+      this._background.x = ip[0] - dp[0] + first._icon.translationX - pad;
+      this._background.y = ip[1] - dp[1] + first._icon.translationY - pad;
+
+      if (this.dock.is_vertical()) {
+        this._background.height = this.height + pad * 2;
+        this._background.width = is + pad * 2;
+        this._background.height +=
+          -first._icon.translationY + last._icon.translationY;
+      } else {
+        this._background.width = this.width + pad * 2;
+        this._background.height = is + pad * 2;
+        this._background.width +=
+          -first._icon.translationX + last._icon.translationX;
+      }
+
       this._background.translationX = this.translationX;
       this._background.translationY = this.translationY;
 
       // render foreground here
 
-      return this.animator.animate(dt, global.get_pointer());
+      return this.animator.animate(dt, {
+        dock: this.dock,
+        pointer: global.get_pointer(),
+      });
     }
   }
 );
