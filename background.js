@@ -17,7 +17,7 @@ export let BackgroundCanvas = GObject.registerClass(
       super._init({
         width: 128,
         height: 128,
-        style_class: 'dock-box'
+        style_class: 'dock-box',
       });
     }
 
@@ -41,14 +41,13 @@ export let BackgroundCanvas = GObject.registerClass(
 
       ctx.setOperator(Cairo.Operator.SOURCE);
 
-      ctx.save();
-      ctx.moveTo(0, 0);
-      ctx.lineTo(size, 0);
-      ctx.lineTo(size, size);
-      ctx.lineTo(0, size);
-      ctx.lineTo(0, 0);
-      ctx.fill();
-      ctx.restore();
+      let rad_percent = 0.4;
+      let rad = height * rad_percent;
+      if (width < height) {
+        rad = width * rad_percent;
+      }
+
+      Drawing.draw_rounded_rect(ctx, [0, 0, 0, 0.7], 0, 0, width, height, 0, rad);
 
       ctx.$dispose();
     }

@@ -13,7 +13,7 @@ const handledWindowTypes = [
   Meta.WindowType.MODAL_DIALOG,
   // Meta.WindowType.TOOLBAR,
   // Meta.WindowType.MENU,
-  Meta.WindowType.UTILITY
+  Meta.WindowType.UTILITY,
   // Meta.WindowType.SPLASHSCREEN
 ];
 
@@ -27,10 +27,10 @@ class WindowTracker {
   track_windows() {
     let tracked = [];
     let actors = global.get_window_actors();
-    let windows = actors.map(a => a.get_meta_window());
-    windows = windows.filter(w => w.can_close());
-    windows = windows.filter(w => w.get_window_type() in handledWindowTypes);
-    windows.forEach(w => {
+    let windows = actors.map((a) => a.get_meta_window());
+    windows = windows.filter((w) => w.can_close());
+    windows = windows.filter((w) => w.get_window_type() in handledWindowTypes);
+    windows.forEach((w) => {
       if (!w._tracked) {
         this.track(w);
       }
@@ -41,8 +41,8 @@ class WindowTracker {
 
   untrack_windows() {
     let actors = global.get_window_actors();
-    let windows = actors.map(a => a.get_meta_window());
-    windows.forEach(w => {
+    let windows = actors.map((a) => a.get_meta_window());
+    windows.forEach((w) => {
       if (w._tracked) {
         this.untrack(w);
       }
@@ -51,8 +51,8 @@ class WindowTracker {
 
   get_tracked_windows() {
     let actors = global.get_window_actors();
-    let windows = actors.map(a => a.get_meta_window());
-    windows = windows.filter(w => w._tracked);
+    let windows = actors.map((a) => a.get_meta_window());
+    windows = windows.filter((w) => w._tracked);
     return windows;
   }
 
@@ -165,7 +165,7 @@ export class Services {
 
   on_windows_update(windows) {
     if (this.extension.docks) {
-      this.extension.docks.forEach(dock => {
+      this.extension.docks.forEach((dock) => {
         dock.debounced_autohide_dodge_windows(windows);
       });
     }

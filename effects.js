@@ -15,7 +15,7 @@ export const Interpolate = {
       return end;
     }
     return start + adv * dir;
-  }
+  },
 };
 
 const ANIM_ICON_RAISE = 0.6;
@@ -85,15 +85,15 @@ export class IconsAnimator {
     this._separators = [];
     this._icons = [];
 
-    sources.forEach(src => {
-      src.forEach(icon => {
+    sources.forEach((src) => {
+      src.forEach((icon) => {
         this._inspectIcon(icon);
       });
     });
 
     let pv = new Graphene.Point();
     pv.init(0.5, 0.5);
-    this._icons.forEach(icon => {
+    this._icons.forEach((icon) => {
       icon._icon.pivot_point = pv;
     });
     return this._icons;
@@ -118,7 +118,7 @@ export class IconsAnimator {
     hitArea *= hitArea;
 
     let idx = 0;
-    animateIcons.forEach(icon => {
+    animateIcons.forEach((icon) => {
       let pos = icon.get_transformed_position();
       icon._pos = [...pos];
       icon._fixedPosition = [...pos];
@@ -166,7 +166,7 @@ export class IconsAnimator {
 
     // animate
     let iconTable = [];
-    animateIcons.forEach(icon => {
+    animateIcons.forEach((icon) => {
       let original_pos = [...icon._pos];
 
       // used by background resizing and repositioning
@@ -262,7 +262,7 @@ export class IconsAnimator {
     if (nearestIcon) {
       nearestIcon._targetScale += 0.1;
       let adjust = nearestIcon._translate / 2;
-      animateIcons.forEach(icon => {
+      animateIcons.forEach((icon) => {
         if (icon._scale > 1) {
           let o = -adjust * (2 - icon._scale);
           let nt = icon._translate - o;
@@ -279,7 +279,7 @@ export class IconsAnimator {
     let lockPosition =
       didAnimate && first && last && first._p == 0 && last._p == 0;
 
-    animateIcons.forEach(icon => {
+    animateIcons.forEach((icon) => {
       // this fixes jittery hovered icon
       if (icon._targetScale > 1.9) icon._targetScale = 2;
 
@@ -313,9 +313,8 @@ export class IconsAnimator {
       if (lockPosition && icon._p == 0) {
         icon._positionCache = icon._positionCache || [];
         if (icon._positionCache.length > 16) {
-          [translationX, translationY] = icon._positionCache[
-            icon._positionCache.length - 1
-          ];
+          [translationX, translationY] =
+            icon._positionCache[icon._positionCache.length - 1];
         } else {
           icon._positionCache.push([translationX, translationY]);
         }
@@ -338,20 +337,20 @@ export class IconsAnimator {
       let flags = {
         bottom: {
           lx: 0,
-          ly: 0.5 * icon._targetScale * scaleFactor
+          ly: 0.5 * icon._targetScale * scaleFactor,
         },
         top: {
           lx: 0,
-          ly: -1.5 * icon._targetScale * scaleFactor
+          ly: -1.5 * icon._targetScale * scaleFactor,
         },
         left: {
           lx: -1.25 * icon._targetScale * scaleFactor,
-          ly: -1.25
+          ly: -1.25,
         },
         right: {
           lx: 1.5 * icon._targetScale * scaleFactor,
-          ly: -1.25
-        }
+          ly: -1.25,
+        },
       };
 
       let posFlags = flags[position];

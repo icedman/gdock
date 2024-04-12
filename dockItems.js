@@ -26,7 +26,7 @@ export let GDockIconItem = GObject.registerClass(
         clip_to_allocation: false,
         x_align: Clutter.ActorAlign.CENTER,
         y_align: Clutter.ActorAlign.CENTER,
-        offscreen_redirect: Clutter.OffscreenRedirect.ALWAYS
+        offscreen_redirect: Clutter.OffscreenRedirect.ALWAYS,
         // style_class: 'dock-box'
       });
 
@@ -52,7 +52,7 @@ export let GDockDashItem = GObject.registerClass(
         clip_to_allocation: false,
         x_align: Clutter.ActorAlign.CENTER,
         y_align: Clutter.ActorAlign.CENTER,
-        offscreen_redirect: Clutter.OffscreenRedirect.ALWAYS
+        offscreen_redirect: Clutter.OffscreenRedirect.ALWAYS,
         // style_class: 'dock-box'
       });
 
@@ -97,7 +97,7 @@ export let GDockDashItem = GObject.registerClass(
 
       return {
         dock_width: this.width + pad_width,
-        dock_height: this.height + pad_height
+        dock_height: this.height + pad_height,
       };
     }
 
@@ -106,10 +106,10 @@ export let GDockDashItem = GObject.registerClass(
 
       this._icons = this.animator.findIcons([
         this.dash._box.get_children(),
-        [this.dash._showAppsIcon]
+        [this.dash._showAppsIcon],
       ]);
 
-      this._icons.forEach(c => {
+      this._icons.forEach((c) => {
         if (c._hooked) {
           return;
         }
@@ -130,12 +130,12 @@ export let GDockDashItem = GObject.registerClass(
       let first = this._icons[0];
       let last = this._icons[this._icons.length - 1];
 
-      let bgHeight = first._icon.icon_size * 1.2;
-      this._background.x = this.x + first._icon.translationX;
+      let pad = 10;
+      this._background.x = this.x + first._icon.translationX - pad;
       this._background.y = this.y;
       this._background.width =
-        this.width + (-first._icon.translationX + last._icon.translationX);
-      this._background.height = bgHeight; // this.height;
+        this.width + (-first._icon.translationX + last._icon.translationX) + pad * 2;
+      this._background.height = this.height;
       this._background.translationX = this.translationX;
       this._background.translationY = this.translationY;
 
@@ -160,7 +160,7 @@ export let GDockPanelItem = GObject.registerClass(
         x_align: Clutter.ActorAlign.CENTER,
         y_align: Clutter.ActorAlign.CENTER,
         offscreen_redirect: Clutter.OffscreenRedirect.ALWAYS,
-        style_class: 'dock-box'
+        style_class: 'dock-box',
       });
 
       this.panel = Main.panel;
@@ -175,7 +175,7 @@ export let GDockPanelItem = GObject.registerClass(
         this.height = 0;
         return {
           dock_width: 0,
-          dock_height: 0
+          dock_height: 0,
         };
       }
 
@@ -191,7 +191,7 @@ export let GDockPanelItem = GObject.registerClass(
 
       return {
         dock_width: this.width + pad_width,
-        dock_height: this.height + pad_height
+        dock_height: this.height + pad_height,
       };
     }
 

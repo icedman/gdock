@@ -110,7 +110,7 @@ export const Vector = class {
 
   // Scalar multiplication of vectors
   multiplyScalar(scalar) {
-    const result = this.components.map(component => component * scalar);
+    const result = this.components.map((component) => component * scalar);
     return new Vector(result);
   }
 
@@ -146,7 +146,7 @@ export const Vector = class {
 
   // Inverse the vector
   inverse() {
-    const invertedComponents = this.components.map(component => -component);
+    const invertedComponents = this.components.map((component) => -component);
     return new Vector(invertedComponents);
   }
 
