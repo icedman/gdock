@@ -28,7 +28,7 @@ export const isOverlapRect = (r1, r2) => {
   return false;
 };
 
-export const isInRect = (r, p, pad) => {
+export const isInRect = (r, p, pad = 0) => {
   let [x1, y1, w, h] = r;
   let x2 = x1 + w;
   let y2 = y1 + h;

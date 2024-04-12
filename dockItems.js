@@ -30,7 +30,7 @@ export let GDockIconItem = GObject.registerClass(
 
       let gicon = new Gio.ThemedIcon({ name: 'folder' });
       let icon = new St.Icon({ gicon: gicon });
-      icon.set_icon_size(64, 64);
+      icon.set_icon_size(64);
       icon.set_size(64, 64);
       this.add_child(icon);
     }

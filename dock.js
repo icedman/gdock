@@ -1,14 +1,18 @@
 'use strict';
 
 import * as Main from 'resource:///org/gnome/shell/ui/main.js';
+import Meta from 'gi://Meta';
 import GObject from 'gi://GObject';
 import Clutter from 'gi://Clutter';
 import St from 'gi://St';
 
-import { isOverlapRect } from './utils.js';
+import { isOverlapRect, isInRect } from './utils.js';
 import { Services } from './services.js';
 
 const ANIM_SLIDE_DURATION = 500;
+
+const ANIM_INTERVAL = 15;
+const ANIM_DEBOUNCE_END_DELAY = 750;
 
 export const DockPosition = {
   TOP: 'top',
@@ -52,6 +56,8 @@ export let GDockItem = GObject.registerClass(
     on_dock(dock) {}
 
     on_undock(dock) {}
+
+    on_animate(dt) {}
   }
 );
 
@@ -100,7 +106,7 @@ export let GDock = GObject.registerClass(
         },
         'leave-event',
         () => {
-          this.debounced_autohide_dodge_windows();
+          this.begin_animation();
         },
         this
       );
@@ -129,6 +135,9 @@ export let GDock = GObject.registerClass(
       if (params.position) {
         this.dock(params.position);
       }
+
+      this._targetX = 0;
+      this._targetY = 0;
     }
 
     set_child(child) {
@@ -178,8 +187,7 @@ export let GDock = GObject.registerClass(
         this.child.on_dock(this);
       }
 
-      this.layout();
-      this.debounced_layout();
+      this.begin_animation();
     }
 
     undock() {
@@ -199,21 +207,14 @@ export let GDock = GObject.registerClass(
     }
 
     slide_in() {
-      let child = this.child;
-      child.remove_all_transitions();
-
-      child.ease({
-        translationX: 0,
-        translationY: 0,
-        duration: ANIM_SLIDE_DURATION,
-        mode: Clutter.AnimationMode.EASE_OUT_QUAD,
-        onComplete: () => {
-          this.debounced_layout();
-        }
-      });
+      if (!this.is_child_hidden()) return;
+      this._targetX = 0;
+      this._targetY = 0;
+      this.begin_animation();
     }
 
     slide_out() {
+      if (this.is_child_hidden()) return;
       let child = this.child;
 
       let targetX = 0;
@@ -232,17 +233,10 @@ export let GDock = GObject.registerClass(
         }
       }
 
-      child.remove_all_transitions();
-      child.ease({
-        translationX: targetX,
-        translationY: targetY,
-        duration: ANIM_SLIDE_DURATION,
-        mode: Clutter.AnimationMode.EASE_OUT_QUAD,
-        onComplete: () => {
-          child._hidden = true;
-          this.debounced_layout();
-        }
-      });
+      this._targetX = targetX;
+      this._targetY = targetY;
+
+      this.begin_animation();
     }
 
     is_vertical() {
@@ -253,7 +247,7 @@ export let GDock = GObject.registerClass(
     }
 
     is_child_hidden() {
-      return this.child.translationX + this.child.translationY != 0;
+      return this._targetX + this._targetY != 0;
     }
 
     _snap_to_container_edge(container, child) {
@@ -346,6 +340,11 @@ export let GDock = GObject.registerClass(
         }
       });
 
+      let p = global.get_pointer();
+      if (isInRect(strutsRect, p)) {
+        should_hide = false;
+      }
+
       if (should_hide) {
         this.slide_out();
       } else {
@@ -372,13 +371,56 @@ export let GDock = GObject.registerClass(
       this._debounce_autohide_dodge_seq.windows = [...windows];
     }
 
-    on_pointer_on_edge(monitor, edge) {
-      console.log(
-        `${edge} ${monitor.index} ${this._monitor.index} ${this._position}`
-      );
-      if (monitor == this._monitor && edge == this._position) {
-        this.slide_in();
+    begin_animation() {
+      this.add_style_class_name('dock-box');
+      let services = Services.instance();
+      if (this._debounce_end_seq) {
+        services.loTimer.runDebounced(this._debounce_end_seq);
+        // services.loTimer.cancel(this._debounce_end_seq);
       }
+
+      this.animation_interval = ANIM_INTERVAL;
+      if (!this._animation_seq) {
+        this._animation_seq = services.hiTimer.runLoop(
+          s => {
+            this.animate(s._delay);
+          },
+          this.animation_interval
+        );
+      } else {
+        services.hiTimer.runLoop(this._animation_seq);
+      }
+
+      this.debounce_end_animation();
+    }
+
+    end_animation() {
+      this.remove_style_class_name('dock-box');
+      let services = Services.instance();
+      services.hiTimer.cancel(this._animation_seq);
+      services.loTimer.cancel(this._debounce_end_seq);
+      this.autohide_dodge_windows();
+    }
+
+    debounce_end_animation() {
+      let services = Services.instance();
+      if (!this._debounce_end_seq) {
+        this._debounce_end_seq = services.loTimer.runDebounced(() => {
+          this.end_animation();
+        }, ANIM_DEBOUNCE_END_DELAY + this.animation_interval);
+      } else {
+        services.loTimer.runDebounced(this._debounce_end_seq);
+      }
+    }
+
+    animate(dt) {
+      this.layout();
+
+      this.child.translationX = this._targetX;
+      this.child.translationY = this._targetY;
+      this.child.on_animate(dt);
+
+      // this.debounce_end_animation();
     }
   }
 );

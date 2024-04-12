@@ -66,8 +66,12 @@ class WindowTracker {
         },
         'size-changed',
         () => {
-          // console.log(`size changed: ${window.title}`);
           this.services.on_windows_update([window]);
+          if (window.is_fullscreen()) {
+            Meta.disable_unredirect_for_display(global.display);
+          } else {
+            Meta.enable_unredirect_for_display(global.display);
+          }
         },
         this
       );
@@ -133,18 +137,18 @@ export class Services {
   }
 
   disable() {
-    this._timer?.shutdown();
-    this._hiTimer?.shutdown();
-    this._loTimer?.shutdown();
+    this.timer?.shutdown();
+    this.hiTimer?.shutdown();
+    this.loTimer?.shutdown();
 
     this.window_tracker.untrack_windows();
     this.window_tracker = null;
 
     global.display.disconnectObject(this);
 
-    this._timer = null;
-    this._hiTimer = null;
-    this._loTimer = null;
+    this.timer = null;
+    this.hiTimer = null;
+    this.loTimer = null;
 
     serviceInstance = null;
   }
@@ -154,7 +158,7 @@ export class Services {
     this.on_windows_update(this.window_tracker.get_tracked_windows());
   }
 
-  _onFullScreen() {
+  _onFullScreen(fullscreen) {
     this.update();
     this.on_windows_update(this.window_tracker.get_tracked_windows());
   }
