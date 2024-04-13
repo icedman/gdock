@@ -29,7 +29,6 @@ export let GDockIconItem = GObject.registerClass(
         x_align: Clutter.ActorAlign.CENTER,
         y_align: Clutter.ActorAlign.CENTER,
         offscreen_redirect: Clutter.OffscreenRedirect.ALWAYS,
-        // style_class: 'dock-box'
       });
 
       let gicon = new Gio.ThemedIcon({ name: 'folder' });
@@ -55,12 +54,16 @@ export let GDockDashItem = GObject.registerClass(
         x_align: Clutter.ActorAlign.CENTER,
         y_align: Clutter.ActorAlign.CENTER,
         offscreen_redirect: Clutter.OffscreenRedirect.ALWAYS,
-        // style_class: 'dock-box'
+        style_class: 'dock-box',
+        layout_manager: new Clutter.BinLayout(),
       });
+
+      this.style = 'border: 2px solid red;';
 
       this._icon_size = 64;
 
       this.dash = new Dash();
+      this.dash._adjustIconSize = () => {};
       this.dash._box.clip_to_allocation = false;
       // this.dash._showAppsIcon.visible = false;
       this.dash._background.visible = false;
@@ -84,46 +87,7 @@ export let GDockDashItem = GObject.registerClass(
       this.animator = new IconsAnimator();
     }
 
-    layout(dock) {
-      this.dock = dock;
-      let vertical = dock.is_vertical();
-
-      this.dash.last_child.layout_manager.orientation = vertical;
-      this.dash._box.layout_manager.orientation = vertical;
-
-      this.width = this.dash.width;
-      this.height = this.dash.height;
-
-      let pad_width = this._icon_size * 2;
-      let pad_height = this._icon_size * 2;
-      if (vertical) {
-        pad_height += this._icon_size * 2;
-        this.width += 20;
-      } else {
-        pad_width += this._icon_size * 2;
-        this.height += 20;
-      }
-
-      // showAppsAtFront
-      let container = this.dash._box.get_parent();
-      if (container.first_child != this.dash._showAppsIcon && this.show_apps_at_front) {
-        container.remove_child(this.dash._showAppsIcon)
-        container.insert_child_below(this.dash._showAppsIcon, container.first_child);
-      }
-      if (container.first_child == this.dash._showAppsIcon && !this.show_apps_at_front) {
-        container.remove_child(this.dash._showAppsIcon)
-        container.add_child(this.dash._showAppsIcon, container.first_child);
-      }
-
-      return {
-        dock_width: this.width + pad_width,
-        dock_height: this.height + pad_height,
-      };
-    }
-
-    on_animate(dt) {
-      if (!this.dock) return;
-
+    _prepare_icons() {
       let iconSources = [];
 
       if (this.dash._box.visible) {
@@ -143,6 +107,7 @@ export let GDockDashItem = GObject.registerClass(
       }
 
       this._icons.forEach((c) => {
+        c._icon.set_size(this._icon_size, this._icon_size);
         c._icon.set_icon_size(this._icon_size);
         if (c._hooked) {
           return;
@@ -173,6 +138,65 @@ export let GDockDashItem = GObject.registerClass(
           };
         }
       });
+    }
+
+    layout(dock) {
+      this.dock = dock;
+      let vertical = dock.is_vertical();
+
+      this._prepare_icons();
+
+      this.dash.last_child.layout_manager.orientation = vertical;
+      this.dash._box.layout_manager.orientation = vertical;
+
+      let padding = 32; // allow padding, otherwise dash is misaligned?
+      this.width = this.dash.width + padding;
+      this.height = this._icon_size + padding;
+      if (vertical) {
+        this.width = this._icon_size + padding;
+        this.height = this.dash.height + padding;
+      }
+
+      this.dock._snap_to_container_edge(this, this.dash);
+
+      // showAppsAtFront
+      let container = this.dash._box.get_parent();
+      if (
+        container.first_child != this.dash._showAppsIcon &&
+        this.show_apps_at_front
+      ) {
+        container.remove_child(this.dash._showAppsIcon);
+        container.insert_child_below(
+          this.dash._showAppsIcon,
+          container.first_child
+        );
+      }
+      if (
+        container.first_child == this.dash._showAppsIcon &&
+        !this.show_apps_at_front
+      ) {
+        container.remove_child(this.dash._showAppsIcon);
+        container.add_child(this.dash._showAppsIcon, container.first_child);
+      }
+
+      let pad_width = this._icon_size * 2;
+      let pad_height = this._icon_size * 2;
+      if (vertical) {
+        pad_height += this._icon_size * 2;
+      } else {
+        pad_width += this._icon_size * 2;
+      }
+
+      return {
+        dock_width: this.width + pad_width,
+        dock_height: this.height + pad_height,
+        struts_width: this.dash.width + dock._edge_distance,
+        struts_height: this.dash.height + dock._edge_distance,
+      };
+    }
+
+    on_animate(dt) {
+      if (!this.dock) return;
 
       // render background here
       if (!this._background) {
@@ -183,28 +207,29 @@ export let GDockDashItem = GObject.registerClass(
       let first = this._icons[0];
       let last = this._icons[this._icons.length - 1];
 
-      let pad = 8;
-      let ip = first.get_transformed_position();
-      let [is, xx] = first.get_transformed_size();
+      first.style = 'border: 1px solid yellow';
+
+      let [px, py] = first.get_transformed_position();
+      let container = this.get_parent();
+      this._background.x = (px || 0) - container.x;
+      this._background.y = (py || 0) - container.y;
 
       if (this.dock.is_vertical()) {
-        this._background.height = this.height + pad * 2;
-        this._background.width = is + pad * 2;
+        this._background.width = this._icon_size;
+        this._background.height = this.dash.height;
+        this._background.y += first._icon.translationY;
         this._background.height +=
           -first._icon.translationY + last._icon.translationY;
       } else {
-        this._background.width = this.width + pad * 2;
-        this._background.height = is + pad * 2;
+        this._background.width = this.dash.width;
+        this._background.height = this._icon_size;
+        this._background.x += first._icon.translationX;
         this._background.width +=
           -first._icon.translationX + last._icon.translationX;
       }
 
-      this._background.x = this.x + this.width/2 - this._background.width/2;
-      this._background.y = this.y + this.height/2 - this._background.height/2;
-
-      this._background.translationX = this.translationX;
-      this._background.translationY = this.translationY;
-      this._background.visible = true;
+      this._background.x -= this.translationX;
+      this._background.y -= this.translationY;
 
       // render foreground here
 
@@ -334,7 +359,7 @@ export let GDockPanelItem = GObject.registerClass(
         x_align: Clutter.ActorAlign.CENTER,
         y_align: Clutter.ActorAlign.CENTER,
         offscreen_redirect: Clutter.OffscreenRedirect.ALWAYS,
-        style_class: 'dock-box',
+        // style_class: 'dock-box',
       });
 
       this.panel = Main.panel;

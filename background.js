@@ -17,7 +17,7 @@ export let BackgroundCanvas = GObject.registerClass(
       super._init({
         width: 128,
         height: 128,
-        style_class: 'dock-box',
+        // style_class: 'dock-box',
       });
     }
 

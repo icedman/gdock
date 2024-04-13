@@ -11,15 +11,26 @@ import { Services } from './services.js';
 import { DockPosition, GDock } from './dock.js';
 import { GDockIconItem, GDockDashItem, GDockPanelItem } from './dockItems.js';
 
+const schemaId = 'org.gnome.shell.extensions.gdock';
+
 export default class GDockExtension extends Extension {
   enable() {
     this.services = new Services(this);
     this.services.enable();
 
+    this._settings = this.getSettings(schemaId);
+    let keys = this._settings.list_keys();
+    keys.forEach((k) => {
+      this._settings.connectObject(`changed::${k}`, (n, v) => {
+        this.services.refresh_setting(k, this._settings);
+      });
+      this.services.refresh_setting(k, this._settings);
+    });
+
     console.log('The Gnome Dock - enabled');
 
     this.docks = [
-      new GDock({ child: new GDockDashItem(), position: DockPosition.BOTTOM }),
+      new GDock({ child: new GDockDashItem(), position: this.services._position }),
       // new GDock({ child: new GDockPanelItem(), position: DockPosition.TOP }),
       // new GDock({ child: new GDockIconItem(), position: DockPosition.RIGHT }),
     ];

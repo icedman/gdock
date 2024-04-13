@@ -2,7 +2,10 @@ all: install
 
 .PHONY: install
 
-install:
+build:
+	glib-compile-schemas --strict --targetdir=schemas/ schemas
+
+install: build
 	echo "installing..."
 	rm -rf ~/.local/share/gnome-shell/extensions/gdock@icedman.github.com/
 	mkdir -p ~/.local/share/gnome-shell/extensions/gdock@icedman.github.com/

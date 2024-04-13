@@ -4,6 +4,7 @@ import * as Main from 'resource:///org/gnome/shell/ui/main.js';
 import Meta from 'gi://Meta';
 
 import { Timer } from './timer.js';
+import { DockPosition } from './dock.js';
 
 // some codes lifted from dash-to-dock intellihide
 const handledWindowTypes = [
@@ -173,5 +174,24 @@ export class Services {
 
   update() {
     this.window_tracker.update();
+  }
+
+  refresh_setting(k, settings) {
+    let d = settings.get_default_value(k);
+    let key_type = d.get_type_string();
+    let key_name = k.replace(/-/g, '_');
+    switch(key_type) {
+    case 'b':
+      this[key_name] = settings.get_boolean(k);
+      break;
+    case 'i':
+      this[key_name] = settings.get_int(k);
+      break;
+    }
+    if (k == 'dock-location') {
+      let pos = [DockPosition.BOTTOM, DockPosition.TOP, DockPosition.LEFT, DockPosition.RIGHT];
+      this._position = pos[this[key_name]];
+      console.log(this._position);
+    }
   }
 }

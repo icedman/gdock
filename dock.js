@@ -16,8 +16,8 @@ const ANIM_INTERVAL = 15;
 const ANIM_DEBOUNCE_END_DELAY = 750;
 
 export const DockPosition = {
-  TOP: 'top',
   BOTTOM: 'bottom',
+  TOP: 'top',
   LEFT: 'left',
   RIGHT: 'right',
 };
@@ -51,6 +51,8 @@ export let GDockItem = GObject.registerClass(
       return {
         dock_width: this.width + pad_width,
         dock_height: this.height + pad_height,
+        struts_width: this.width,
+        struts_height: this.height,
       };
     }
 
@@ -81,22 +83,20 @@ export let GDock = GObject.registerClass(
         // style_class: 'dock-box'
       });
 
-      this._hidden = false;
-      this._position = DockPosition.TOP;
       this._monitor = Main.layoutManager.primaryMonitor;
 
       this._struts = new St.Widget({
         name: 'GDockStruts',
         reactive: false,
         track_hover: false,
-        // style_class: 'dock-box'
+        style_class: 'dock-box',
       });
       this._dwell = new St.Widget({
         name: 'GDockDwell',
         reactive: true,
         track_hover: true,
         offscreen_redirect: Clutter.OffscreenRedirect.ALWAYS,
-        style_class: 'dock-box',
+        // style_class: 'dock-box',
       });
       this._dwell.connectObject(
         'motion-event',
@@ -138,9 +138,6 @@ export let GDock = GObject.registerClass(
       if (params.position) {
         this.dock(params.position);
       }
-
-      this._targetX = 0;
-      this._targetY = 0;
     }
 
     set_child(child) {
@@ -190,7 +187,10 @@ export let GDock = GObject.registerClass(
         this.child.on_dock(this);
       }
 
-      this.begin_animation();
+      this._edge_distance = 10;
+
+      this._hidden = true;
+      this.slide_in();
     }
 
     undock() {
@@ -210,14 +210,33 @@ export let GDock = GObject.registerClass(
     }
 
     slide_in() {
-      if (!this.is_child_hidden()) return;
-      this._targetX = 0;
-      this._targetY = 0;
+      if (!this._hidden) return;
+
+      let targetX = 0;
+      let targetY = 0;
+      if (this.is_vertical()) {
+        if (this._position == DockPosition.LEFT) {
+          targetX = this._edge_distance;
+        } else {
+          targetX = -this._edge_distance;
+        }
+      } else {
+        if (this._position == DockPosition.TOP) {
+          targetY = this._edge_distance;
+        } else {
+          targetY = -this._edge_distance;
+        }
+      }
+
+      this._targetX = targetX;
+      this._targetY = targetY;
+      this._hidden = false;
+
       this.begin_animation();
     }
 
     slide_out() {
-      if (this.is_child_hidden()) return;
+      if (this._hidden) return;
       let child = this.child;
 
       let targetX = 0;
@@ -238,6 +257,7 @@ export let GDock = GObject.registerClass(
 
       this._targetX = targetX;
       this._targetY = targetY;
+      this._hidden = true;
 
       this.begin_animation();
     }
@@ -249,30 +269,29 @@ export let GDock = GObject.registerClass(
       );
     }
 
-    is_child_hidden() {
-      return this._targetX + this._targetY != 0;
-    }
-
-    _snap_to_container_edge(container, child, edge_distance = 0) {
+    _snap_to_container_edge(container, child, edge = true) {
       child.x = container.width / 2 - child.width / 2;
       child.y = container.height / 2 - child.height / 2;
-      if (this.is_vertical()) {
-        if (this._position == DockPosition.LEFT) {
-          child.x = 0 + edge_distance;
+      if (edge) {
+        if (this.is_vertical()) {
+          if (this._position == DockPosition.LEFT) {
+            child.x = 0;
+          } else {
+            child.x = container.width - child.width;
+          }
         } else {
-          child.x = container.width - child.width;
-        }
-      } else {
-        if (this._position == DockPosition.TOP) {
-          child.y = 0 + edge_distance;
-        } else {
-          child.y = container.height - child.height - edge_distance;
+          if (this._position == DockPosition.TOP) {
+            child.y = 0;
+          } else {
+            child.y = container.height - child.height;
+          }
         }
       }
     }
 
     layout() {
-      let edge_distance = 8;
+      this._position = Services.instance()._position;
+      
       let child = this.child;
       let constraints = child.layout(this);
       if (constraints) {
@@ -286,22 +305,20 @@ export let GDock = GObject.registerClass(
         this.height = constraints.dock_height;
       }
 
-      if (this.is_vertical()) {
-        this.width += edge_distance;
-      } else {
-        this.height += edge_distance;
-      }
-
+      // dock
       this._snap_to_container_edge(this._monitor, this);
       this.x += this._monitor.x;
       this.y += this._monitor.y;
 
-      this._snap_to_container_edge(this, child, edge_distance);
+      // dock child
+      this._snap_to_container_edge(this, child);
 
-      this._struts.width = child.width;
-      this._struts.height = child.height;
+      // struts
+      this._struts.width = constraints.struts_width;
+      this._struts.height = constraints.struts_height;
       this._snap_to_container_edge(this._monitor, this._struts);
 
+      // dwell
       this._dwell.width = child.width;
       this._dwell.height = child.height;
       if (this.is_vertical()) {
@@ -386,7 +403,7 @@ export let GDock = GObject.registerClass(
     }
 
     begin_animation() {
-      this.add_style_class_name('dock-box');
+      // this.add_style_class_name('dock-box');
       let services = Services.instance();
       if (this._debounce_end_seq) {
         services.loTimer.runDebounced(this._debounce_end_seq);
@@ -404,7 +421,7 @@ export let GDock = GObject.registerClass(
     }
 
     end_animation() {
-      this.remove_style_class_name('dock-box');
+      // this.remove_style_class_name('dock-box');
       let services = Services.instance();
       services.hiTimer.cancel(this._animation_seq);
       services.loTimer.cancel(this._debounce_end_seq);
@@ -438,6 +455,11 @@ export let GDock = GObject.registerClass(
         dt,
         speed
       );
+
+      this._foreground.translationX = this.child.translationX;
+      this._foreground.translationY = this.child.translationY;
+      this._background.translationX = this.child.translationX;
+      this._background.translationY = this.child.translationY;
 
       if (this.child.on_animate(dt)) {
         this.debounce_end_animation();
