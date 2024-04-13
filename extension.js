@@ -30,7 +30,10 @@ export default class GDockExtension extends Extension {
     console.log('The Gnome Dock - enabled');
 
     this.docks = [
-      new GDock({ child: new GDockDashItem(), position: this.services._position }),
+      new GDock({
+        child: new GDockDashItem(),
+        position: this.services._position,
+      }),
       // new GDock({ child: new GDockPanelItem(), position: DockPosition.TOP }),
       // new GDock({ child: new GDockIconItem(), position: DockPosition.RIGHT }),
     ];

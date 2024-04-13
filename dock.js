@@ -291,7 +291,7 @@ export let GDock = GObject.registerClass(
 
     layout() {
       this._position = Services.instance()._position;
-      
+
       let child = this.child;
       let constraints = child.layout(this);
       if (constraints) {

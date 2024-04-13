@@ -187,7 +187,7 @@ export class IconsAnimator {
     //------------------------
     let rise = 0.35 * ANIM_ICON_RAISE;
     let magnify = 0.35 * ANIM_ICON_SCALE;
-    let spread = 0.25;
+    let spread = 0.65;
 
     // when not much spreading, minimize magnification
     if (spread < 0.2) {
@@ -198,7 +198,7 @@ export class IconsAnimator {
       spread = 0.55 + spread * 0.2;
     }
 
-    let threshold = (iconSize + 10) * 2.5 * scaleFactor;
+    let threshold = (iconSize + 10) * 2.5; // * scaleFactor;
 
     // animate
     let iconTable = [];
@@ -275,7 +275,7 @@ export class IconsAnimator {
       if (icon._scale > 1.1) {
         // affect spread
         let offset =
-          1.25 * (icon._scale - 1) * iconSize * scaleFactor * spread * 0.8;
+          1.25 * (icon._scale - 1) * iconSize * scaleFactor * spread * 1.2; // 0.8;
         let o = offset;
         // left
         for (let j = i - 1; j >= 0; j--) {
@@ -342,12 +342,16 @@ export class IconsAnimator {
       let adjustY = 0;
 
       let [targetSize] = icon._icon.get_transformed_size();
+      targetSize *= 2;
+      if (scaleFactor == 2) {
+        targetSize *= 2;
+      }
       if (targetSize > icon.height) {
-        let rise = (targetSize - icon.height) * 0.5;
+        let rise = (targetSize - icon.height) * 1;
         if (vertical) {
-          adjustX += rise * (position == DockPosition.LEFT ? 1 : -1);
+          adjustX += rise * (position == DockPosition.LEFT ? 0.5 : -1);
         } else {
-          adjustY += rise * (position == DockPosition.BOTTOM ? -1 : 1);
+          adjustY += rise * (position == DockPosition.BOTTOM ? -1 : 0.5);
         }
       }
 

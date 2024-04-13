@@ -11,5 +11,10 @@
         <summary>Dock location</summary>
         <description>Set dock position on the screen.</description>
     </key>
+    <key type="d" name="icon-size">
+        <default>64</default>
+        <summary>Icon size</summary>
+        <description>Icon size.</description>
+    </key>
   </schema>
 </schemalist>

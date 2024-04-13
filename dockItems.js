@@ -15,6 +15,8 @@ import { BackgroundCanvas } from './background.js';
 import { GDockItem, DockPosition } from './dock.js';
 import { Services } from './services.js';
 
+const ICON_QUALITY = 2;
+
 export let GDockIconItem = GObject.registerClass(
   {},
   class GDockIconItem extends GDockItem {
@@ -106,18 +108,29 @@ export let GDockDashItem = GObject.registerClass(
         return;
       }
 
+      let iconQualitySize = this._icon_size * ICON_QUALITY;
+
       this._icons.forEach((c) => {
-        c._icon.set_size(this._icon_size, this._icon_size);
-        c._icon.set_icon_size(this._icon_size);
         if (c._hooked) {
           return;
         }
+
+        c._icon.set_size(this._icon_size, this._icon_size);
+        c._icon.set_icon_size(this._icon_size);
 
         let pv = new Graphene.Point();
         pv.init(0.5, 0.5);
         c._icon.pivot_point = pv;
 
         c._icon.remove_all_transitions();
+
+        let cp = c._icon.get_parent();
+        cp.layoutManager = new Clutter.FixedLayout();
+        c._icon.layoutManager = new Clutter.FixedLayout();
+        cp.set_size(this._icon_size, this._icon_size);
+        c._icon.set_icon_size(iconQualitySize);
+        c._icon.set_size(iconQualitySize, iconQualitySize);
+        // cp._icon
 
         c._hooked = true;
         c._icon.track_hover = true;
@@ -143,6 +156,8 @@ export let GDockDashItem = GObject.registerClass(
     layout(dock) {
       this.dock = dock;
       let vertical = dock.is_vertical();
+
+      this._icon_size = Services.instance().icon_size || 48;
 
       this._prepare_icons();
 
@@ -181,15 +196,18 @@ export let GDockDashItem = GObject.registerClass(
 
       let pad_width = this._icon_size * 2;
       let pad_height = this._icon_size * 2;
+
+      let dock_width = this.width + pad_width;
+      let dock_height = this.height + pad_height;
       if (vertical) {
-        pad_height += this._icon_size * 2;
+        dock_height = this.dock._monitor.height;
       } else {
-        pad_width += this._icon_size * 2;
+        dock_width = this.dock._monitor.width;
       }
 
       return {
-        dock_width: this.width + pad_width,
-        dock_height: this.height + pad_height,
+        dock_width,
+        dock_height,
         struts_width: this.dash.width + dock._edge_distance,
         struts_height: this.dash.height + dock._edge_distance,
       };
@@ -204,10 +222,25 @@ export let GDockDashItem = GObject.registerClass(
         this.dock._background.add_child(this._background);
       }
 
+      let iconQualitySize = this._icon_size * ICON_QUALITY;
+      let scaleFactor = this.dock._monitor.geometry_scale;
+
+      this._icons.forEach((c) => {
+        let cp = c._icon.get_parent();
+        if (c._icon.icon_size != iconQualitySize) {
+          cp.set_size(this._icon_size, this._icon_size);
+          c._icon.set_icon_size(iconQualitySize);
+        }
+        let sz = this._icon_size / c._icon.icon_size / scaleFactor;
+        cp.set_scale(sz, sz);
+      });
+
       let first = this._icons[0];
       let last = this._icons[this._icons.length - 1];
 
       first.style = 'border: 1px solid yellow';
+
+      let parentScale = first._icon.get_parent().scaleX;
 
       let [px, py] = first.get_transformed_position();
       let container = this.get_parent();
@@ -215,17 +248,20 @@ export let GDockDashItem = GObject.registerClass(
       this._background.y = (py || 0) - container.y;
 
       if (this.dock.is_vertical()) {
-        this._background.width = this._icon_size;
-        this._background.height = this.dash.height;
-        this._background.y += first._icon.translationY;
+        this._background.width = this._icon_size + 4 * scaleFactor;
+        this._background.height = this.dash.height + 4 * scaleFactor;
+        this._background.y += first._icon.translationY * parentScale;
         this._background.height +=
-          -first._icon.translationY + last._icon.translationY;
+          -first._icon.translationY * parentScale +
+          last._icon.translationX * parentScale;
       } else {
-        this._background.width = this.dash.width;
-        this._background.height = this._icon_size;
-        this._background.x += first._icon.translationX;
+        this._background.width = this.dash.width + 4 * scaleFactor;
+        this._background.height = this._icon_size + 4 * scaleFactor;
+        this._background.x +=
+          first._icon.translationX * first._icon.get_parent().scaleX;
         this._background.width +=
-          -first._icon.translationX + last._icon.translationX;
+          -first._icon.translationX * parentScale +
+          last._icon.translationX * parentScale;
       }
 
       this._background.x -= this.translationX;

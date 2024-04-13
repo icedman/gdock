@@ -180,18 +180,32 @@ export class Services {
     let d = settings.get_default_value(k);
     let key_type = d.get_type_string();
     let key_name = k.replace(/-/g, '_');
-    switch(key_type) {
-    case 'b':
-      this[key_name] = settings.get_boolean(k);
-      break;
-    case 'i':
-      this[key_name] = settings.get_int(k);
-      break;
+    switch (key_type) {
+      case 'b':
+        this[key_name] = settings.get_boolean(k);
+        break;
+      case 'i':
+        this[key_name] = settings.get_int(k);
+        break;
+      case 'd':
+        this[key_name] = settings.get_double(k);
+        break;
     }
+
     if (k == 'dock-location') {
-      let pos = [DockPosition.BOTTOM, DockPosition.TOP, DockPosition.LEFT, DockPosition.RIGHT];
+      let pos = [
+        DockPosition.BOTTOM,
+        DockPosition.TOP,
+        DockPosition.LEFT,
+        DockPosition.RIGHT,
+      ];
       this._position = pos[this[key_name]];
-      console.log(this._position);
+    }
+
+    if (this.extension.docks) {
+      this.extension.docks.forEach((dock) => {
+        dock.begin_animation();
+      });
     }
   }
 }
